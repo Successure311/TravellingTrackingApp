@@ -69,8 +69,9 @@ export default function App() {
             <span className="display text-lg font-bold tracking-wide text-white">Wayfarer</span>
             <div className="ml-auto flex items-center gap-2">
               {pending > 0 && <span className="mono rounded-full bg-white/25 px-2.5 py-1 text-xs text-white">{pending} syncing</span>}
-              <button onClick={() => refresh(true)} aria-label="Refresh" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white active:rotate-180">
-                <RefreshIcon width={18} height={18} />
+              <button onClick={() => refresh(true)} aria-label="Sync with Google Sheet" title="Reload the latest data from your Google Sheet" className="flex h-9 items-center gap-1.5 rounded-full bg-white/20 pl-2.5 pr-3 text-sm font-medium text-white active:bg-white/30">
+                <RefreshIcon width={16} height={16} />
+                Sync
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useStored } from "../hooks/useStored.js";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
 import PersonPicker from "./PersonPicker.jsx";
@@ -15,8 +16,8 @@ const TYPES = {
 
 export default function StayForm({ stays, people, person, setPerson, notify }) {
   const [date, setDate] = useState(todayStr());
-  const [type, setType] = useState("Outside");
-  const [city, setCity] = useState("");
+  const [type, setType] = useStored("wf_s_type", "Outside");
+  const [city, setCity] = useStored("wf_s_city", "");
 
   const mine = useMemo(() => stays.filter((s) => s.person === person), [stays, person]);
   const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [stays]);
