@@ -5,7 +5,7 @@ const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 // Large month calendar. `marks` maps yyyy-MM-dd to "Home" | "Outside" for the coloured dots.
-export default function BigCalendar({ value, onChange, marks, min }) {
+export default function BigCalendar({ value, onChange, marks, min, legend = true }) {
   const sel = parseDate(value || todayStr());
   const [view, setView] = useState({ y: sel.getFullYear(), m: sel.getMonth() });
   const today = todayStr();
@@ -79,10 +79,14 @@ export default function BigCalendar({ value, onChange, marks, min }) {
       </div>
 
       <div className="mt-3 flex items-center justify-between text-xs text-mist">
-        <span className="flex items-center gap-3">
-          <i className="inline-block h-2 w-2 rounded-full bg-home" /> Home
-          <i className="inline-block h-2 w-2 rounded-full bg-away" /> Outside
-        </span>
+        {legend ? (
+          <span className="flex items-center gap-3">
+            <i className="inline-block h-2 w-2 rounded-full bg-home" /> Home
+            <i className="inline-block h-2 w-2 rounded-full bg-away" /> Outside
+          </span>
+        ) : (
+          <span />
+        )}
         <button type="button" onClick={jumpToday} className="rounded-full border border-line px-3 py-1 text-sky">
           Today
         </button>

@@ -77,6 +77,7 @@ export function DateField({ label, value, onChange, min, accent = "#38bdf8" }) {
             value={value}
             min={min}
             marks={{}}
+            legend={false}
             onChange={(v) => {
               onChange(v);
               setOpen(false);
