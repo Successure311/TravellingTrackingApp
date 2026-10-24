@@ -7,7 +7,7 @@ const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] te
 const trigger =
   "flex h-14 w-full items-center justify-between rounded-xl border border-line bg-night/60 px-3 text-left text-white active:border-sky";
 
-function Sheet({ title, onClose, children }) {
+function Sheet({ title, onClose, children, top = false }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -16,10 +16,10 @@ function Sheet({ title, onClose, children }) {
     };
   }, []);
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div className={`fixed inset-0 z-[60] flex justify-center bg-black/60 ${top ? "items-start" : "items-end"}`} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="toast-in safe-bottom w-full max-w-md rounded-t-3xl border border-line bg-night p-4"
+        className={`toast-in w-full max-w-md border border-line bg-night p-4 ${top ? "safe-top rounded-b-3xl" : "safe-bottom rounded-t-3xl"}`}
       >
         <div className="mb-3 flex items-center justify-between">
           <h3 className="display text-lg font-bold">{title}</h3>
@@ -186,7 +186,7 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
       </button>
 
       {open && (
-        <Sheet title={label} onClose={() => setOpen(false)}>
+        <Sheet title={label} onClose={() => setOpen(false)} top>
           <div className="mb-5 flex items-center justify-center gap-3">
             <input
               ref={hhRef}
