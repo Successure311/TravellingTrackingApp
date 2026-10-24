@@ -36,6 +36,10 @@ export function enqueue(item) {
   flush();
 }
 
+export function dequeue(key) {
+  write(read().filter((i) => i.key !== key));
+}
+
 export async function flush() {
   if (flushing) return;
   clearTimeout(timer);

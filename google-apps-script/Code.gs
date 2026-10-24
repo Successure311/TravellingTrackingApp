@@ -5,6 +5,7 @@
  *  1. Create a Google Sheet (any name).
  *  2. Extensions > Apps Script. Delete the sample code, paste this file.
  *  3. Select the function "setup" and press Run. Approve the permissions.
+ *     (Safe to run again: it also upgrades older sheets to the current columns.)
  *  4. Deploy > New deployment > type "Web app".
  *       Execute as: Me      Who has access: Anyone
  *     Copy the Web app URL (ends with /exec) into src/config.js.
@@ -13,18 +14,26 @@
  */
 
 var SCHEMA = {
-  Travel: ['Id', 'CreatedAt', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime', 'DurationMins'],
-  Stay: ['Date', 'Type', 'City', 'UpdatedAt']
+  Travel: ['Id', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime'],
+  Stay: ['Date', 'Type', 'City']
 };
-// columns that must stay plain text (so Sheets never turns "2026-10-24" or "09:30" into a date/serial)
+// columns kept as plain text so Sheets never turns "2026-10-24" or "09:30" into a date/serial
 var TEXT_COLS = {
   Travel: ['DepartDate', 'DepartTime', 'ArrivalDate', 'ArrivalTime'],
   Stay: ['Date']
 };
-var CACHE_KEY = 'all_v1';
+var TIME_COLS = ['DepartTime', 'ArrivalTime'];
+var CACHE_KEY = 'all_v2';
 
 function setup() {
   Object.keys(SCHEMA).forEach(function (name) { sheet_(name); });
+}
+
+function pad2_(n) { return ('0' + n).slice(-2); }
+
+function normTime_(v) {
+  var m = String(v).match(/(\d{1,2}):(\d{2})/);
+  return m ? pad2_(m[1]) + ':' + m[2] : v;
 }
 
 function sheet_(name) {
@@ -33,13 +42,52 @@ function sheet_(name) {
   var cols = SCHEMA[name];
   if (!sh) {
     sh = ss.insertSheet(name);
-    sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
-    sh.setFrozenRows(1);
-    TEXT_COLS[name].forEach(function (c) {
-      sh.getRange(2, cols.indexOf(c) + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@');
+    writeHeader_(sh, name);
+    return sh;
+  }
+  // upgrade an older layout (e.g. with CreatedAt / DurationMins) in place
+  var head = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+  while (head.length && head[head.length - 1] === '') head.pop();
+  if (head.join('|') !== cols.join('|')) migrate_(sh, name, head);
+  return sh;
+}
+
+function writeHeader_(sh, name) {
+  var cols = SCHEMA[name];
+  sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  TEXT_COLS[name].forEach(function (c) {
+    sh.getRange(2, cols.indexOf(c) + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@');
+  });
+}
+
+function migrate_(sh, name, oldHead) {
+  var cols = SCHEMA[name];
+  var last = sh.getLastRow();
+  var rows = [];
+  if (last >= 2 && oldHead.length) {
+    var data = sh.getRange(2, 1, last - 1, oldHead.length).getDisplayValues();
+    data.forEach(function (r) {
+      if (!r.join('')) return;
+      var o = {};
+      oldHead.forEach(function (h, i) { o[h] = r[i]; });
+      var out = cols.map(function (c) { return o[c] === undefined ? '' : o[c]; });
+      TIME_COLS.forEach(function (c) {
+        var i = cols.indexOf(c);
+        if (i >= 0) out[i] = normTime_(out[i]);
+      });
+      rows.push(out);
     });
   }
-  return sh;
+  if (name === 'Travel') rows.forEach(function (r, i) { r[0] = i + 1; }); // Id = 1, 2, 3...
+  sh.clear();
+  writeHeader_(sh, name);
+  if (rows.length) {
+    TEXT_COLS[name].forEach(function (c) {
+      sh.getRange(2, cols.indexOf(c) + 1, rows.length, 1).setNumberFormat('@');
+    });
+    sh.getRange(2, 1, rows.length, cols.length).setValues(rows);
+  }
 }
 
 function json_(obj) {
@@ -82,15 +130,6 @@ function toRow_(name, row) {
   return SCHEMA[name].map(function (c) { return row[c] === undefined ? '' : row[c]; });
 }
 
-// Force the date/time columns to plain text BEFORE writing, so "09:30" stays "09:30".
-function writeRow_(sh, name, rowNum, values) {
-  var cols = SCHEMA[name];
-  TEXT_COLS[name].forEach(function (c) {
-    sh.getRange(rowNum, cols.indexOf(c) + 1).setNumberFormat('@');
-  });
-  sh.getRange(rowNum, 1, 1, values.length).setValues([values]);
-}
-
 function findRow_(sh, colName, name, value) {
   var last = sh.getLastRow();
   if (last < 2) return -1;
@@ -100,6 +139,39 @@ function findRow_(sh, colName, name, value) {
     if (String(vals[i][0]) === String(value)) return i + 2;
   }
   return -1;
+}
+
+// Force the date/time columns to plain text BEFORE writing, so "09:30" stays "09:30".
+function writeRow_(sh, name, rowNum, values) {
+  var cols = SCHEMA[name];
+  TEXT_COLS[name].forEach(function (c) {
+    sh.getRange(rowNum, cols.indexOf(c) + 1).setNumberFormat('@');
+  });
+  sh.getRange(rowNum, 1, 1, values.length).setValues([values]);
+}
+
+// next sequential Id: highest existing number + 1
+function nextId_(sh) {
+  var last = sh.getLastRow();
+  if (last < 2) return 1;
+  var vals = sh.getRange(2, 1, last - 1, 1).getValues();
+  var max = 0;
+  vals.forEach(function (r) { var n = Number(r[0]); if (n > max) max = n; });
+  return max + 1;
+}
+
+// The app sends a one-off client id (cid) with every new trip so a retried request is not
+// added twice. We remember recent ones here instead of using a sheet column.
+function seen_(cid) {
+  var raw = PropertiesService.getScriptProperties().getProperty('seen');
+  return raw ? JSON.parse(raw).indexOf(cid) >= 0 : false;
+}
+function remember_(cid) {
+  var props = PropertiesService.getScriptProperties();
+  var list = JSON.parse(props.getProperty('seen') || '[]');
+  list.push(cid);
+  if (list.length > 300) list = list.slice(-300);
+  props.setProperty('seen', JSON.stringify(list));
 }
 
 function doPost(e) {
@@ -119,9 +191,11 @@ function doPost(e) {
       var key = body.key_column;
       var at = findRow_(sh, key, name, body.row[key]);
       writeRow_(sh, name, at > 0 ? at : sh.getLastRow() + 1, toRow_(name, body.row));
-    } else {
-      // append, ignoring a retried duplicate (same Id)
-      if (findRow_(sh, 'Id', name, body.row.Id) < 0) writeRow_(sh, name, sh.getLastRow() + 1, toRow_(name, body.row));
+    } else if (!(body.cid && seen_(body.cid))) {
+      // append (a retried request with the same cid is ignored)
+      if (name === 'Travel') body.row.Id = nextId_(sh);
+      writeRow_(sh, name, sh.getLastRow() + 1, toRow_(name, body.row));
+      if (body.cid) remember_(body.cid);
     }
 
     SpreadsheetApp.flush();

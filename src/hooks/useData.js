@@ -3,6 +3,7 @@ import { fetchAll } from "../lib/api.js";
 import { getOutbox, subscribeOutbox } from "../lib/outbox.js";
 import { HAS_BACKEND } from "../config.js";
 import { canonicalCity } from "../data/indianCities.js";
+import { minutesBetween } from "../lib/time.js";
 
 const CACHE_KEY = "wayfarer_cache_v1";
 
@@ -17,17 +18,22 @@ const normTime = (v) => {
   return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
 };
 
-const normTravel = (r) => ({
-  id: String(r.Id),
-  mode: r.Mode,
-  source: canonicalCity(r.Source),
-  dDate: r.DepartDate,
-  dTime: normTime(r.DepartTime),
-  destination: canonicalCity(r.Destination),
-  aDate: r.ArrivalDate,
-  aTime: normTime(r.ArrivalTime),
-  mins: num(r.DurationMins),
-});
+// Duration is not stored in the sheet: it is worked out from the depart/arrival date and time.
+const normTravel = (r) => {
+  const dTime = normTime(r.DepartTime);
+  const aTime = normTime(r.ArrivalTime);
+  return {
+    id: String(r.Id),
+    mode: r.Mode,
+    source: canonicalCity(r.Source),
+    dDate: r.DepartDate,
+    dTime,
+    destination: canonicalCity(r.Destination),
+    aDate: r.ArrivalDate,
+    aTime,
+    mins: Math.max(0, num(minutesBetween(r.DepartDate, dTime, r.ArrivalDate, aTime))),
+  };
+};
 const normStay = (r) => ({ date: r.Date, type: r.Type, city: canonicalCity(r.City) });
 
 function loadCache() {

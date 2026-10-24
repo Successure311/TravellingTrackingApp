@@ -50,14 +50,14 @@ Open the Pages URL in Chrome (Android) or Safari (iOS) > **Add to Home Screen**.
 ## How it stays fast
 
 - Saves are written to a local outbox first and sent in the background, so the form confirms instantly.
-- If you are offline (train, flight) the entries wait and sync when the signal returns. Retried entries never duplicate (the script dedupes by `Id`; Stay is one row per date).
+- If you are offline (train, flight) the entries wait and sync when the signal returns. Retried entries never duplicate (the script ignores repeats; Stay is one row per date).
 - Posts use `text/plain` so the browser skips the CORS preflight. Reads return both tabs in one request, cached for 30 s on the server and in the browser.
 
 ## Sheet layout
 
 | Tab | Columns |
 | --- | --- |
-| Travel | Id, CreatedAt, Mode, Source, DepartDate, DepartTime, Destination, ArrivalDate, ArrivalTime, DurationMins |
-| Stay | Date, Type (`Home` / `Outside`), City, UpdatedAt |
+| Travel | Id (1, 2, 3...), Mode, Source, DepartDate, DepartTime, Destination, ArrivalDate, ArrivalTime |
+| Stay | Date, Type (`Home` / `Outside`), City |
 
-All times are treated as one timezone (IST); duration is arrival minus departure.
+All times are treated as one timezone (IST). Duration is not stored: the app works it out as arrival minus departure.

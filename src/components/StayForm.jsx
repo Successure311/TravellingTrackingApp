@@ -48,7 +48,7 @@ export default function StayForm({ stays, notify }) {
       key: `stay-${date}-${Date.now()}`,
       kind: "stay",
       row,
-      payload: { sheet: "Stay", action: "upsert", key_column: "Date", row: { Date: date, Type: type, City: row.city, UpdatedAt: new Date().toISOString() } },
+      payload: { sheet: "Stay", action: "upsert", key_column: "Date", row: { Date: date, Type: type, City: row.city } },
     });
     pushRecent(row.city);
     notify(`${fmtDay(date)}: ${type === "Home" ? "Home" : "Outside"}, ${row.city}`);

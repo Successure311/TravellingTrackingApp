@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import CityInput from "./CityInput.jsx";
 import { DateField, TimeField } from "./Pickers.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
-import { enqueue } from "../lib/outbox.js";
+import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
 import { canonicalCity } from "../data/indianCities.js";
 import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.js";
@@ -45,9 +45,8 @@ export default function TravelForm({ trips, notify }) {
       row,
       payload: {
         sheet: "Travel",
+        cid: id, // one-off id so a retried request is never added twice; the sheet assigns Id 1, 2, 3...
         row: {
-          Id: id,
-          CreatedAt: new Date().toISOString(),
           Mode: mode,
           Source: row.source,
           DepartDate: dDate,
@@ -55,7 +54,6 @@ export default function TravelForm({ trips, notify }) {
           Destination: row.destination,
           ArrivalDate: aDate,
           ArrivalTime: aTime,
-          DurationMins: mins,
         },
       },
     });
@@ -81,7 +79,9 @@ export default function TravelForm({ trips, notify }) {
   };
 
   const remove = (t) => {
-    enqueue({ key: `del-${t.id}`, kind: "delete", id: t.id, payload: { sheet: "Travel", action: "delete", id: t.id } });
+    // not synced yet (local id): just drop the queued save; otherwise delete the sheet row
+    if (!/^\d+$/.test(t.id)) dequeue(t.id);
+    else enqueue({ key: `del-${t.id}`, kind: "delete", id: t.id, payload: { sheet: "Travel", action: "delete", id: t.id } });
     notify("Trip removed");
   };
 
