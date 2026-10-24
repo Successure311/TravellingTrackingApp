@@ -90,7 +90,7 @@ export default function CityInput({ label, value, onChange, accent = "#38bdf8", 
           ))}
           {showCustom && (
             <button type="button" onClick={() => pick(value.trim())} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-dawn">
-              Use "{value.trim()}"
+              + Add "{value.trim()}" as a new place
             </button>
           )}
         </div>

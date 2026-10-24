@@ -6,7 +6,7 @@ import PersonPicker from "./PersonPicker.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
-import { canonicalCity } from "../data/indianCities.js";
+import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
 import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.js";
 
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
@@ -61,6 +61,8 @@ export default function TravelForm({ trips, people, person, setPerson, notify })
       },
     });
     pushRecent(row.source, row.destination);
+    addCustomPlace(row.source);
+    addCustomPlace(row.destination);
     notify(`${mode} logged: ${row.source} to ${row.destination} (${fmtDuration(mins)})`);
     // keep mode and dates so a multi-leg day is quick to enter
     setSource(row.destination);

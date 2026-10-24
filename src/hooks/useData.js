@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchAll } from "../lib/api.js";
 import { getOutbox, subscribeOutbox } from "../lib/outbox.js";
 import { HAS_BACKEND } from "../config.js";
-import { canonicalCity } from "../data/indianCities.js";
+import { canonicalCity, registerPlaces } from "../data/indianCities.js";
 import { minutesBetween } from "../lib/time.js";
 import { normPerson } from "../lib/person.js";
 
@@ -112,6 +112,10 @@ export function useData() {
     () => [...new Set([...travel.map((t) => t.person), ...stay.map((s) => s.person)])].filter((p) => p !== "Unassigned").sort(),
     [travel, stay]
   );
+
+  useEffect(() => {
+    registerPlaces([...travel.flatMap((t) => [t.source, t.destination]), ...stay.map((s) => s.city)]);
+  }, [travel, stay]);
 
   return { travel, stay, people, loading, error, pending: outbox.length, refresh };
 }

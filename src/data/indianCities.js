@@ -26,21 +26,55 @@ const canonByKey = new Map(CITIES.map((c) => [c.key, c]));
 
 const titleCase = (s) => s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 
+// States / UTs: typing "gujarat" suggests the state itself (and its cities below it).
+const STATE_NAMES = "Andhra Pradesh;Arunachal Pradesh;Assam;Bihar;Chhattisgarh;Gujarat;Haryana;Himachal Pradesh;Jharkhand;Karnataka;Kerala;Madhya Pradesh;Maharashtra;Manipur;Meghalaya;Mizoram;Nagaland;Odisha;Punjab;Rajasthan;Sikkim;Tamil Nadu;Telangana;Tripura;Uttar Pradesh;Uttarakhand;West Bengal;Andaman & Nicobar;Dadra & Nagar Haveli;Daman & Diu;Jammu & Kashmir;Ladakh;Lakshadweep".split(";");
+const STATE_ENTRIES = STATE_NAMES.map((name) => ({ name, state: "State / UT", key: name.toLowerCase(), skey: "", aliases: [], isState: true }));
+const stateByKey = new Map(STATE_ENTRIES.map((c) => [c.key, c]));
+
+// Places the user typed that are not in the list. Remembered on this phone, and also rebuilt
+// from the sheet rows (registerPlaces), so they show up on every device.
+const CUSTOM_KEY = "wayfarer_custom_places";
+const custom = new Map(); // lower-case key -> display name
+try {
+  JSON.parse(localStorage.getItem(CUSTOM_KEY) || "[]").forEach((n) => custom.set(n.toLowerCase(), n));
+} catch {
+  /* ignore */
+}
+const isKnown = (k) => ALIASES[k] || canonByKey.has(k) || byKey.has(k) || stateByKey.has(k);
+
+export function addCustomPlace(input, persist = true) {
+  const name = canonicalCity(input);
+  const k = name.toLowerCase();
+  if (!name || isKnown(k) || custom.has(k)) return;
+  custom.set(k, name);
+  if (persist) {
+    try {
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify([...custom.values()]));
+    } catch {
+      /* ignore */
+    }
+  }
+}
+export const registerPlaces = (names) => names.forEach((n) => addCustomPlace(n, false));
+
+const customEntries = () => [...custom.values()].map((name) => ({ name, state: "Added by you", key: name.toLowerCase(), skey: "", aliases: [] }));
+
 // "  bangalore " / "BENGALURU" / "Bangalore" -> "Bengaluru". Unknown cities are just tidied.
 export function canonicalCity(input) {
   const t = String(input ?? "").trim().replace(/\s+/g, " ");
   if (!t) return "";
   const k = t.toLowerCase();
   if (ALIASES[k]) return ALIASES[k];
-  const hit = canonByKey.get(k) || byKey.get(k);
-  return hit ? hit.name : titleCase(t);
+  const hit = canonByKey.get(k) || byKey.get(k) || stateByKey.get(k);
+  if (hit) return hit.name;
+  return custom.get(k) || titleCase(t);
 }
 
 export function searchCities(q, limit = 8) {
   const s = q.trim().toLowerCase();
   if (!s) return [];
   const scored = [];
-  for (const c of CITIES) {
+  for (const c of [...CITIES, ...STATE_ENTRIES, ...customEntries()]) {
     const names = [c.key, ...c.aliases];
     let score = 0;
     for (const n of names) {

@@ -6,7 +6,7 @@ import PersonPicker from "./PersonPicker.jsx";
 import { HomeIcon, TentIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
-import { canonicalCity } from "../data/indianCities.js";
+import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
 import { fmtDay, todayStr } from "../lib/time.js";
 
 const TYPES = {
@@ -54,6 +54,7 @@ export default function StayForm({ stays, people, person, setPerson, notify }) {
       payload: { sheet: "Stay", action: "upsert", key_columns: ["Person", "Date"], row: { Person: person, Date: date, Type: type, City: row.city } },
     });
     pushRecent(row.city);
+    addCustomPlace(row.city);
     notify(`${fmtDay(date)}: ${type === "Home" ? "Home" : "Outside"}, ${row.city}`);
     // jump to the next day for quick back-filling
     const d = new Date(date + "T00:00:00");
