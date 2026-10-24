@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import CityInput from "./CityInput.jsx";
 import { DateField, TimeField } from "./Pickers.jsx";
+import PersonPicker from "./PersonPicker.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
@@ -10,7 +11,7 @@ import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
-export default function TravelForm({ trips, notify }) {
+export default function TravelForm({ trips, people, person, setPerson, notify }) {
   const [mode, setMode] = useState("Flight");
   const [source, setSource] = useState("");
   const [dest, setDest] = useState("");
@@ -22,7 +23,7 @@ export default function TravelForm({ trips, notify }) {
 
   const mins = useMemo(() => minutesBetween(dDate, dTime, aDate, aTime), [dDate, dTime, aDate, aTime]);
   const timeError = mins != null && mins <= 0 ? "Arrival must be after departure" : null;
-  const ready = source.trim() && dest.trim() && dDate && dTime && aDate && aTime && mins > 0;
+  const ready = person && source.trim() && dest.trim() && dDate && dTime && aDate && aTime && mins > 0;
 
   const swap = () => {
     setSource(dest);
@@ -38,7 +39,7 @@ export default function TravelForm({ trips, notify }) {
     e.preventDefault();
     if (!ready) return;
     const id = uid();
-    const row = { id, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins };
+    const row = { id, person, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins };
     enqueue({
       key: id,
       kind: "travel",
@@ -47,6 +48,7 @@ export default function TravelForm({ trips, notify }) {
         sheet: "Travel",
         cid: id, // one-off id so a retried request is never added twice; the sheet assigns Id 1, 2, 3...
         row: {
+          Person: person,
           Mode: mode,
           Source: row.source,
           DepartDate: dDate,
@@ -85,11 +87,14 @@ export default function TravelForm({ trips, notify }) {
     notify("Trip removed");
   };
 
-  const recent = [...trips].sort((a, b) => (b.dDate + b.dTime).localeCompare(a.dDate + a.dTime)).slice(0, 6);
+  const recent = trips.filter((t) => t.person === person).sort((a, b) => (b.dDate + b.dTime).localeCompare(a.dDate + a.dTime)).slice(0, 6);
 
   return (
     <div className="space-y-6">
-      <form onSubmit={submit} className="ticket rise" style={{ "--notch": "176px" }}>
+      <form onSubmit={submit} className="ticket rise" style={{ "--notch": "276px" }}>
+        <div className="p-4 pb-0">
+          <PersonPicker people={people} value={person} onChange={setPerson} />
+        </div>
         {/* mode */}
         <div className="grid grid-cols-3 gap-2 p-4">
           {Object.entries(MODES).map(([key, m]) => {

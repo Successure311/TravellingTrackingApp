@@ -14,8 +14,8 @@
  */
 
 var SCHEMA = {
-  Travel: ['Id', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime'],
-  Stay: ['Date', 'Type', 'City']
+  Travel: ['Id', 'Person', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime'],
+  Stay: ['Person', 'Date', 'Type', 'City']
 };
 // columns kept as plain text so Sheets never turns "2026-10-24" or "09:30" into a date/serial
 var TEXT_COLS = {
@@ -23,7 +23,7 @@ var TEXT_COLS = {
   Stay: ['Date']
 };
 var TIME_COLS = ['DepartTime', 'ArrivalTime'];
-var CACHE_KEY = 'all_v2';
+var CACHE_KEY = 'all_v3';
 
 function setup() {
   Object.keys(SCHEMA).forEach(function (name) { sheet_(name); });
@@ -79,7 +79,12 @@ function migrate_(sh, name, oldHead) {
       rows.push(out);
     });
   }
-  if (name === 'Travel') rows.forEach(function (r, i) { r[0] = i + 1; }); // Id = 1, 2, 3...
+  if (name === 'Travel') {
+    // keep valid numeric Ids, give everything else the next number (1, 2, 3...)
+    var mx = 0;
+    rows.forEach(function (r) { var n = Number(r[0]); if (n > mx) mx = n; });
+    rows.forEach(function (r) { if (!(Number(r[0]) > 0)) r[0] = ++mx; });
+  }
   sh.clear();
   writeHeader_(sh, name);
   if (rows.length) {
@@ -141,6 +146,22 @@ function findRow_(sh, colName, name, value) {
   return -1;
 }
 
+// row number whose key columns all match (Stay is unique per Person + Date)
+function findRowMulti_(sh, name, keys, vals) {
+  var last = sh.getLastRow();
+  if (last < 2) return -1;
+  var cols = SCHEMA[name];
+  var data = sh.getRange(2, 1, last - 1, cols.length).getDisplayValues();
+  for (var i = 0; i < data.length; i++) {
+    var ok = true;
+    for (var k = 0; k < keys.length; k++) {
+      if (String(data[i][cols.indexOf(keys[k])]) !== String(vals[k])) { ok = false; break; }
+    }
+    if (ok) return i + 2;
+  }
+  return -1;
+}
+
 // Force the date/time columns to plain text BEFORE writing, so "09:30" stays "09:30".
 function writeRow_(sh, name, rowNum, values) {
   var cols = SCHEMA[name];
@@ -188,8 +209,8 @@ function doPost(e) {
       var r = findRow_(sh, dKey, name, body.id);
       if (r > 0) sh.deleteRow(r);
     } else if (body.action === 'upsert') {
-      var key = body.key_column;
-      var at = findRow_(sh, key, name, body.row[key]);
+      var keys = body.key_columns || [body.key_column];
+      var at = findRowMulti_(sh, name, keys, keys.map(function (k) { return body.row[k]; }));
       writeRow_(sh, name, at > 0 ? at : sh.getLastRow() + 1, toRow_(name, body.row));
     } else if (!(body.cid && seen_(body.cid))) {
       // append (a retried request with the same cid is ignored)

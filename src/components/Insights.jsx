@@ -3,6 +3,8 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import { analyse, availableYears } from "../lib/analytics.js";
 import { fmtDuration, MONTHS, fmtDay } from "../lib/time.js";
 import { MODES, PinIcon } from "./Icons.jsx";
+import { Avatar } from "./PersonPicker.jsx";
+import { personColor } from "../lib/person.js";
 
 const MODE_COLORS = { Flight: "#38bdf8", Train: "#fbbf24", Car: "#34d399" };
 const tip = { background: "#17264a", border: "1px solid #263559", borderRadius: 12, color: "#e8eefc", fontSize: 13 };
@@ -36,12 +38,29 @@ function Kpi({ label, value, unit, color, foot }) {
   );
 }
 
-export default function Insights({ travel, stay, loading }) {
+export default function Insights({ travel: allTravel, stay: allStay, people, person, loading }) {
+  // main filter: one traveller (default: the one currently selected in the forms) or everyone
+  const [who, setWho] = useState(person || "all");
+  const effectiveWho = who === "all" || people.includes(who) || !people.length ? who : "all";
+  const travel = useMemo(() => (effectiveWho === "all" ? allTravel : allTravel.filter((t) => t.person === effectiveWho)), [allTravel, effectiveWho]);
+  const stay = useMemo(() => (effectiveWho === "all" ? allStay : allStay.filter((s) => s.person === effectiveWho)), [allStay, effectiveWho]);
+
   const years = useMemo(() => availableYears(travel, stay), [travel, stay]);
   const [year, setYear] = useState(years[0]);
   const [mode, setMode] = useState("all");
 
   const a = useMemo(() => analyse({ travel, stay, year, mode }), [travel, stay, year, mode]);
+  const byPerson = useMemo(() => {
+    const m = {};
+    a.trips.forEach((t) => {
+      const p = (m[t.person] ||= { name: t.person, hours: 0, trips: 0 });
+      p.hours += t.mins / 60;
+      p.trips += 1;
+    });
+    return Object.values(m)
+      .map((p) => ({ ...p, hours: +p.hours.toFixed(1) }))
+      .sort((x, y) => y.hours - x.hours);
+  }, [a]);
   const hours = a.totalMins / 60;
   const delta = a.prevMins ? Math.round(((a.totalMins - a.prevMins) / a.prevMins) * 100) : null;
   const modeData = Object.entries(a.byMode)
@@ -61,6 +80,29 @@ export default function Insights({ travel, stay, loading }) {
 
   return (
     <div className="space-y-4">
+      {/* traveller: the main filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {["all", ...people].map((p) => {
+          const on = effectiveWho === p;
+          const c = p === "all" ? "#ffffff" : personColor(p);
+          return (
+            <button
+              key={p}
+              onClick={() => setWho(p)}
+              className="flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-[15px] transition active:scale-95"
+              style={{ borderColor: on ? c : "var(--color-line)", background: on ? `${c}22` : "transparent", color: on ? "#fff" : "var(--color-mist)", fontWeight: on ? 600 : 500 }}
+            >
+              {p === "all" ? (
+                <span className="display flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs font-bold">All</span>
+              ) : (
+                <Avatar name={p} />
+              )}
+              {p === "all" ? "Everyone" : p}
+            </button>
+          );
+        })}
+      </div>
+
       {/* filters */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {["all", ...years].map((y) => (
@@ -93,7 +135,9 @@ export default function Insights({ travel, stay, loading }) {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rise col-span-2 overflow-hidden rounded-3xl p-5" style={{ background: "linear-gradient(135deg, #1d6fd1, #3b9bf0 60%, #ffc46b)" }}>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/80">Time in transit</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/80">
+            {effectiveWho === "all" ? "Everyone" : effectiveWho} · time in transit
+          </p>
           <p className="display mt-1 text-5xl font-bold text-white">
             {hours.toFixed(hours >= 100 ? 0 : 1)}
             <span className="ml-1 text-xl font-medium text-white/80">hours</span>
@@ -113,6 +157,30 @@ export default function Insights({ travel, stay, loading }) {
           foot={a.longest ? `${a.longest.source} to ${a.longest.destination}` : "no trips"}
         />
       </div>
+
+      {/* per traveller, only when looking at everyone */}
+      {effectiveWho === "all" && byPerson.length > 1 && (
+        <Card title="By traveller" sub="Hours in transit">
+          <ul className="space-y-2.5">
+            {byPerson.map((p) => (
+              <li key={p.name} className="flex items-center gap-3">
+                <Avatar name={p.name} size={30} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="truncate">{p.name}</span>
+                    <span className="mono text-mist">
+                      {p.hours}h · {p.trips} trips
+                    </span>
+                  </div>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-night">
+                    <div className="h-full rounded-full" style={{ width: `${(p.hours / byPerson[0].hours) * 100}%`, background: personColor(p.name) }} />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* hours by month/year */}
       <Card title={year === "all" ? "Travel hours by year" : `Travel hours by month · ${year}`} sub="Stacked by mode">

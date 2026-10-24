@@ -4,6 +4,7 @@ import { getOutbox, subscribeOutbox } from "../lib/outbox.js";
 import { HAS_BACKEND } from "../config.js";
 import { canonicalCity } from "../data/indianCities.js";
 import { minutesBetween } from "../lib/time.js";
+import { normPerson } from "../lib/person.js";
 
 const CACHE_KEY = "wayfarer_cache_v1";
 
@@ -24,6 +25,7 @@ const normTravel = (r) => {
   const aTime = normTime(r.ArrivalTime);
   return {
     id: String(r.Id),
+    person: normPerson(r.Person) || "Unassigned",
     mode: r.Mode,
     source: canonicalCity(r.Source),
     dDate: r.DepartDate,
@@ -34,7 +36,7 @@ const normTravel = (r) => {
     mins: Math.max(0, num(minutesBetween(r.DepartDate, dTime, r.ArrivalDate, aTime))),
   };
 };
-const normStay = (r) => ({ date: r.Date, type: r.Type, city: canonicalCity(r.City) });
+const normStay = (r) => ({ person: normPerson(r.Person) || "Unassigned", date: r.Date, type: r.Type, city: canonicalCity(r.City) });
 
 function loadCache() {
   try {
@@ -97,14 +99,19 @@ export function useData() {
   // server rows + not-yet-synced local rows
   const { travel, stay } = useMemo(() => {
     const t = new Map(server.travel.map((r) => [r.id, r]));
-    const s = new Map(server.stay.map((r) => [r.date, r]));
+    const s = new Map(server.stay.map((r) => [`${r.person}|${r.date}`, r]));
     for (const item of outbox) {
       if (item.kind === "travel") t.set(item.row.id, item.row);
       else if (item.kind === "delete") t.delete(item.id);
-      else if (item.kind === "stay") s.set(item.row.date, item.row);
+      else if (item.kind === "stay") s.set(`${item.row.person}|${item.row.date}`, item.row);
     }
     return { travel: [...t.values()], stay: [...s.values()] };
   }, [server, outbox]);
 
-  return { travel, stay, loading, error, pending: outbox.length, refresh };
+  const people = useMemo(
+    () => [...new Set([...travel.map((t) => t.person), ...stay.map((s) => s.person)])].filter((p) => p !== "Unassigned").sort(),
+    [travel, stay]
+  );
+
+  return { travel, stay, people, loading, error, pending: outbox.length, refresh };
 }

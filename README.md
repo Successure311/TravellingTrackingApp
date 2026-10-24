@@ -57,7 +57,7 @@ Open the Pages URL in Chrome (Android) or Safari (iOS) > **Add to Home Screen**.
 
 | Tab | Columns |
 | --- | --- |
-| Travel | Id (1, 2, 3...), Mode, Source, DepartDate, DepartTime, Destination, ArrivalDate, ArrivalTime |
-| Stay | Date, Type (`Home` / `Outside`), City |
+| Travel | Id (1, 2, 3...), Person, Mode, Source, DepartDate, DepartTime, Destination, ArrivalDate, ArrivalTime |
+| Stay | Person, Date, Type (`Home` / `Outside`), City |
 
 All times are treated as one timezone (IST). Duration is not stored: the app works it out as arrival minus departure.

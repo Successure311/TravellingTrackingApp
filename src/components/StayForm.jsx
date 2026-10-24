@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
+import PersonPicker from "./PersonPicker.jsx";
 import { HomeIcon, TentIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
@@ -12,17 +13,18 @@ const TYPES = {
   Outside: { label: "Outside Home", color: "#a78bfa", Icon: TentIcon, sub: "Slept elsewhere" },
 };
 
-export default function StayForm({ stays, notify }) {
+export default function StayForm({ stays, people, person, setPerson, notify }) {
   const [date, setDate] = useState(todayStr());
   const [type, setType] = useState("Outside");
   const [city, setCity] = useState("");
 
-  const byDate = useMemo(() => Object.fromEntries(stays.map((s) => [s.date, s])), [stays]);
-  const marks = useMemo(() => Object.fromEntries(stays.map((s) => [s.date, s.type])), [stays]);
+  const mine = useMemo(() => stays.filter((s) => s.person === person), [stays, person]);
+  const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [stays]);
+  const marks = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s.type])), [mine]);
   const lastHome = useMemo(() => {
-    const homes = stays.filter((s) => s.type === "Home" && s.city).sort((a, b) => b.date.localeCompare(a.date));
+    const homes = mine.filter((s) => s.type === "Home" && s.city).sort((a, b) => b.date.localeCompare(a.date));
     return homes[0]?.city || "";
-  }, [stays]);
+  }, [mine]);
 
   // opening a day that already has an entry shows it for editing
   useEffect(() => {
@@ -38,17 +40,17 @@ export default function StayForm({ stays, notify }) {
     if (t === "Home" && !city && lastHome) setCity(lastHome);
   };
 
-  const ready = date && city.trim();
+  const ready = person && date && city.trim();
 
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
-    const row = { date, type, city: canonicalCity(city) };
+    const row = { person, date, type, city: canonicalCity(city) };
     enqueue({
       key: `stay-${date}-${Date.now()}`,
       kind: "stay",
       row,
-      payload: { sheet: "Stay", action: "upsert", key_column: "Date", row: { Date: date, Type: type, City: row.city } },
+      payload: { sheet: "Stay", action: "upsert", key_columns: ["Person", "Date"], row: { Person: person, Date: date, Type: type, City: row.city } },
     });
     pushRecent(row.city);
     notify(`${fmtDay(date)}: ${type === "Home" ? "Home" : "Outside"}, ${row.city}`);
@@ -63,6 +65,9 @@ export default function StayForm({ stays, notify }) {
 
   return (
     <form onSubmit={submit} className="space-y-4 rise">
+      <div className="rounded-2xl border border-line bg-deck p-4">
+        <PersonPicker people={people} value={person} onChange={setPerson} />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {Object.entries(TYPES).map(([key, t]) => {
           const on = type === key;

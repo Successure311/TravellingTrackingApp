@@ -21,7 +21,24 @@ export default function App() {
   });
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
-  const { travel, stay, loading, error, pending, refresh } = useData();
+  const { travel, stay, people, loading, error, pending, refresh } = useData();
+  const [person, setPerson] = useState(() => {
+    try {
+      return localStorage.getItem("wayfarer_person") || "";
+    } catch {
+      return "";
+    }
+  });
+  // remember the last traveller; fall back to the first known one
+  const activePerson = person || people[0] || "";
+  const choosePerson = (p) => {
+    setPerson(p);
+    try {
+      localStorage.setItem("wayfarer_person", p);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const notify = useCallback((msg, type = "ok") => {
     clearTimeout(timer.current);
@@ -65,9 +82,9 @@ export default function App() {
       {error && <p className="mx-4 mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
 
       <main className="px-4 pt-5">
-        {tab === "travel" && <TravelForm trips={travel} notify={notify} />}
-        {tab === "stay" && <StayForm stays={stay} notify={notify} />}
-        {tab === "insights" && <Insights travel={travel} stay={stay} loading={loading} />}
+        {tab === "travel" && <TravelForm trips={travel} people={people} person={activePerson} setPerson={choosePerson} notify={notify} />}
+        {tab === "stay" && <StayForm stays={stay} people={people} person={activePerson} setPerson={choosePerson} notify={notify} />}
+        {tab === "insights" && <Insights travel={travel} stay={stay} people={people} person={activePerson} loading={loading} />}
       </main>
 
       {toast && (
