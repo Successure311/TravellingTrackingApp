@@ -7,7 +7,27 @@ const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] te
 const trigger =
   "flex h-14 w-full items-center justify-between rounded-xl border border-line bg-night/60 px-3 text-left text-white active:border-sky";
 
-function Sheet({ title, onClose, children, top = false }) {
+// The part of the screen that is actually visible: it shrinks when the phone keyboard opens.
+function useVisibleArea(enabled) {
+  const [box, setBox] = useState(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!enabled || !vv) return;
+    const update = () => setBox({ top: vv.offsetTop, left: vv.offsetLeft, width: vv.width, height: vv.height });
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [enabled]);
+  return box;
+}
+
+// aboveKeyboard: the window sits just above the on-screen keyboard instead of behind it.
+function Sheet({ title, onClose, children, aboveKeyboard = false }) {
+  const box = useVisibleArea(aboveKeyboard);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -15,11 +35,16 @@ function Sheet({ title, onClose, children, top = false }) {
       document.body.style.overflow = prev;
     };
   }, []);
+  const floating = aboveKeyboard && box;
   return (
-    <div className={`fixed inset-0 z-[60] flex justify-center bg-black/60 ${top ? "items-start" : "items-end"}`} onClick={onClose}>
+    <div
+      className={`z-[60] flex items-end justify-center bg-black/60 ${floating ? "fixed" : "fixed inset-0"}`}
+      style={floating ? { top: box.top, left: box.left, width: box.width, height: box.height } : undefined}
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`toast-in w-full max-w-md border border-line bg-night p-4 ${top ? "safe-top rounded-b-3xl" : "safe-bottom rounded-t-3xl"}`}
+        className={`toast-in w-full max-w-md border border-line bg-night p-4 ${aboveKeyboard ? "mx-2 mb-2 rounded-3xl" : "safe-bottom rounded-t-3xl"}`}
       >
         <div className="mb-3 flex items-center justify-between">
           <h3 className="display text-lg font-bold">{title}</h3>
@@ -186,7 +211,7 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
       </button>
 
       {open && (
-        <Sheet title={label} onClose={() => setOpen(false)} top>
+        <Sheet title={label} onClose={() => setOpen(false)} aboveKeyboard>
           <div className="mb-5 flex items-center justify-center gap-3">
             <input
               ref={hhRef}
