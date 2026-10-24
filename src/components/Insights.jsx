@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import { analyse, availableYears } from "../lib/analytics.js";
 import { fmtDuration, MONTHS, fmtDay } from "../lib/time.js";
 import { MODES, PinIcon } from "./Icons.jsx";
-import { Avatar } from "./PersonPicker.jsx";
+import PersonPicker, { Avatar } from "./PersonPicker.jsx";
 import { personColor } from "../lib/person.js";
 
 const MODE_COLORS = { Flight: "#38bdf8", Train: "#fbbf24", Car: "#34d399" };
@@ -81,27 +81,7 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
   return (
     <div className="space-y-4">
       {/* traveller: the main filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {["all", ...people].map((p) => {
-          const on = effectiveWho === p;
-          const c = p === "all" ? "#ffffff" : personColor(p);
-          return (
-            <button
-              key={p}
-              onClick={() => setWho(p)}
-              className="flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-[15px] transition active:scale-95"
-              style={{ borderColor: on ? c : "var(--color-line)", background: on ? `${c}22` : "transparent", color: on ? "#fff" : "var(--color-mist)", fontWeight: on ? 600 : 500 }}
-            >
-              {p === "all" ? (
-                <span className="display flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs font-bold">All</span>
-              ) : (
-                <Avatar name={p} />
-              )}
-              {p === "all" ? "Everyone" : p}
-            </button>
-          );
-        })}
-      </div>
+      <PersonPicker people={people} value={effectiveWho} onChange={setWho} allowAll canAdd={false} />
 
       {/* filters */}
       <div className="flex gap-2 overflow-x-auto pb-1">

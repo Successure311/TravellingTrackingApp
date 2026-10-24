@@ -14,7 +14,7 @@ export function Avatar({ name, size = 28 }) {
 }
 
 // Who is travelling: a dropdown of every added name, with "+ Add new traveller" at the bottom.
-export default function PersonPicker({ people, value, onChange, label = "Traveller" }) {
+export default function PersonPicker({ people, value, onChange, label = "Traveller", allowAll = false, canAdd = true }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -26,8 +26,13 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
     return () => document.removeEventListener("pointerdown", close);
   }, []);
 
-  const list = value && !people.includes(value) ? [...people, value] : people;
-  const showInput = adding || list.length === 0;
+  const list = value && value !== "all" && !people.includes(value) ? [...people, value] : people;
+  const showInput = canAdd && (adding || list.length === 0);
+  const everyone = (size) => (
+    <span className="display flex shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold" style={{ width: size, height: size }}>
+      All
+    </span>
+  );
 
   const add = () => {
     const name = normPerson(draft, list);
@@ -53,7 +58,12 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
         className="flex h-14 w-full items-center gap-3 rounded-xl border border-line bg-night/60 px-3 text-left active:border-sky"
         style={{ borderColor: open ? "var(--color-sky)" : undefined }}
       >
-        {value ? (
+        {value === "all" ? (
+          <>
+            {everyone(32)}
+            <span className="display flex-1 truncate text-lg font-bold">Everyone</span>
+          </>
+        ) : value ? (
           <>
             <Avatar name={value} size={32} />
             <span className="display flex-1 truncate text-lg font-bold">{value}</span>
@@ -68,6 +78,18 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
 
       {open && (
         <div className="absolute inset-x-0 top-full z-40 mt-1 max-h-72 overflow-auto rounded-xl border border-line bg-deck-2 p-1 shadow-2xl shadow-black/50">
+          {allowAll && (
+            <button
+              type="button"
+              onClick={() => pick("all")}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left active:bg-deck"
+              style={{ background: value === "all" ? "rgba(56,189,248,.12)" : undefined }}
+            >
+              {everyone(28)}
+              <span className="flex-1 text-[15px]">Everyone</span>
+              {value === "all" && <span className="text-sky">✓</span>}
+            </button>
+          )}
           {list.map((p) => (
             <button
               key={p}
@@ -82,7 +104,7 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
             </button>
           ))}
 
-          {!showInput && (
+          {canAdd && !showInput && (
             <button type="button" onClick={() => setAdding(true)} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-dawn">
               + Add new traveller
             </button>
