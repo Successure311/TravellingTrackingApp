@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import CityInput from "./CityInput.jsx";
+import { DateField, TimeField } from "./Pickers.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
@@ -129,22 +130,10 @@ export default function TravelForm({ trips, notify }) {
 
         {/* times */}
         <div className="grid grid-cols-2 gap-3 p-4 pt-5">
-          <div>
-            <span className={lbl}>Departs date</span>
-            <input type="date" value={dDate} onChange={(e) => onDepartDate(e.target.value)} className={field} />
-          </div>
-          <div>
-            <span className={lbl}>Departs time</span>
-            <input type="time" value={dTime} onChange={(e) => setDTime(e.target.value)} className={field} />
-          </div>
-          <div>
-            <span className={lbl}>Arrival date</span>
-            <input type="date" value={aDate} min={dDate} onChange={(e) => setADate(e.target.value)} className={field} />
-          </div>
-          <div>
-            <span className={lbl}>Arrival time</span>
-            <input type="time" value={aTime} onChange={(e) => setATime(e.target.value)} className={field} />
-          </div>
+          <DateField label="Departs date" value={dDate} onChange={onDepartDate} accent={accent} />
+          <TimeField label="Departs time" value={dTime} onChange={setDTime} accent={accent} />
+          <DateField label="Arrival date" value={aDate} min={dDate} onChange={setADate} accent={accent} />
+          <TimeField label="Arrival time" value={aTime} onChange={setATime} accent={accent} />
         </div>
 
         <div className="px-4 pb-4">

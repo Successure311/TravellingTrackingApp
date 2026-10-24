@@ -5,8 +5,8 @@ const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 // Large month calendar. `marks` maps yyyy-MM-dd to "Home" | "Outside" for the coloured dots.
-export default function BigCalendar({ value, onChange, marks }) {
-  const sel = parseDate(value);
+export default function BigCalendar({ value, onChange, marks, min }) {
+  const sel = parseDate(value || todayStr());
   const [view, setView] = useState({ y: sel.getFullYear(), m: sel.getMonth() });
   const today = todayStr();
 
@@ -55,13 +55,15 @@ export default function BigCalendar({ value, onChange, marks }) {
           const isSel = ds === value;
           const isToday = ds === today;
           const mark = marks[ds];
+          const blocked = min && ds < min;
           const dot = mark === "Home" ? "var(--color-home)" : mark === "Outside" ? "var(--color-away)" : null;
           return (
             <button
               key={i}
               type="button"
+              disabled={blocked}
               onClick={() => onChange(ds)}
-              className="relative flex aspect-square flex-col items-center justify-center rounded-2xl text-lg font-medium transition active:scale-90"
+              className="relative flex aspect-square flex-col items-center justify-center rounded-2xl text-lg font-medium transition active:scale-90 disabled:opacity-25"
               style={{
                 background: isSel ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : "transparent",
                 color: isSel ? "#0a1224" : undefined,
