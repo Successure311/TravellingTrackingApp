@@ -190,10 +190,13 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
           <div className="mb-5 flex items-center justify-center gap-3">
             <input
               ref={hhRef}
+              autoFocus
               value={hh}
               onChange={(e) => onHour(e.target.value)}
               onFocus={(e) => e.target.select()}
               inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint="next"
               placeholder="HH"
               aria-label="Hour"
               className={box}
@@ -203,9 +206,17 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
               ref={mmRef}
               value={mm}
               onChange={(e) => onMin(e.target.value)}
-              onKeyDown={(e) => e.key === "Backspace" && mm === "" && hhRef.current?.focus()}
+              onKeyDown={(e) => {
+                if (e.key === "Backspace" && mm === "") hhRef.current?.focus();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  done();
+                }
+              }}
               onFocus={(e) => e.target.select()}
               inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint="done"
               placeholder="MM"
               aria-label="Minutes"
               className={box}
