@@ -337,11 +337,10 @@ function Globe({ places, routes }) {
 export default function TravelMap({ trips, stays }) {
   const { places, routes, unmapped } = useMemo(() => collect(trips, stays), [trips, stays]);
   const abroad = places.filter((p) => p.abroad);
-  if (!places.length) return null;
   return (
     <>
       <IndiaMap places={places} routes={routes} abroadCount={abroad.length} />
-      {abroad.length > 0 && <Globe places={places} routes={routes} />}
+      <Globe places={places} routes={routes} />
       {unmapped.length > 0 && <p className="px-1 text-center text-xs text-mist">Not on the map (position unknown): {unmapped.join(", ")}</p>}
     </>
   );
