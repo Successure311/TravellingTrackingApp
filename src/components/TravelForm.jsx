@@ -3,6 +3,7 @@ import CityInput from "./CityInput.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
+import { canonicalCity } from "../data/indianCities.js";
 import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.js";
 
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
@@ -36,7 +37,7 @@ export default function TravelForm({ trips, notify }) {
     e.preventDefault();
     if (!ready) return;
     const id = uid();
-    const row = { id, mode, source: source.trim(), dDate, dTime, destination: dest.trim(), aDate, aTime, mins };
+    const row = { id, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins };
     enqueue({
       key: id,
       kind: "travel",

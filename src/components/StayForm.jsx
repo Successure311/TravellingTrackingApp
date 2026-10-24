@@ -4,6 +4,7 @@ import CityInput from "./CityInput.jsx";
 import { HomeIcon, TentIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
+import { canonicalCity } from "../data/indianCities.js";
 import { fmtDay, todayStr } from "../lib/time.js";
 
 const TYPES = {
@@ -42,7 +43,7 @@ export default function StayForm({ stays, notify }) {
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
-    const row = { date, type, city: city.trim() };
+    const row = { date, type, city: canonicalCity(city) };
     enqueue({
       key: `stay-${date}-${Date.now()}`,
       kind: "stay",

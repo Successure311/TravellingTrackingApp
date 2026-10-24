@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchAll } from "../lib/api.js";
 import { getOutbox, subscribeOutbox } from "../lib/outbox.js";
 import { HAS_BACKEND } from "../config.js";
+import { canonicalCity } from "../data/indianCities.js";
 
 const CACHE_KEY = "wayfarer_cache_v1";
 
@@ -19,15 +20,15 @@ const normTime = (v) => {
 const normTravel = (r) => ({
   id: String(r.Id),
   mode: r.Mode,
-  source: r.Source,
+  source: canonicalCity(r.Source),
   dDate: r.DepartDate,
   dTime: normTime(r.DepartTime),
-  destination: r.Destination,
+  destination: canonicalCity(r.Destination),
   aDate: r.ArrivalDate,
   aTime: normTime(r.ArrivalTime),
   mins: num(r.DurationMins),
 });
-const normStay = (r) => ({ date: r.Date, type: r.Type, city: r.City });
+const normStay = (r) => ({ date: r.Date, type: r.Type, city: canonicalCity(r.City) });
 
 function loadCache() {
   try {
