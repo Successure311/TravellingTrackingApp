@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-night: #0a1224;
+  --color-deck: #111c36;
+  --color-deck-2: #17264a;
+  --color-line: #263559;
+  --color-mist: #8fa0c4;
+
+  /* one colour per way of travelling */
+  --color-sky: #38bdf8;   /* flight */
+  --color-rail: #fbbf24;  /* train */
+  --color-road: #34d399;  /* car */
+  /* stay */
+  --color-home: #fb923c;
+  --color-away: #a78bfa;
+  /* sunset accent */
+  --color-dusk: #ff7a59;
+  --color-dawn: #ffc46b;
+}
+
+html,
+body {
+  touch-action: pan-y;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  background: var(--color-night);
+  color: #e8eefc;
+  font-family: var(--font-sans);
+}
+
+body {
+  background-image:
+    radial-gradient(900px 400px at 85% -10%, rgba(255, 122, 89, 0.16), transparent 60%),
+    radial-gradient(700px 400px at -10% 0%, rgba(56, 189, 248, 0.14), transparent 60%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+/* boarding-pass ticket with notches and a perforated divider */
+.ticket {
+  position: relative;
+  background: linear-gradient(180deg, var(--color-deck-2), var(--color-deck));
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+}
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: var(--notch, 64px);
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--color-night);
+  border: 1px solid var(--color-line);
+}
+.ticket::before { left: -12px; clip-path: inset(0 0 0 50%); }
+.ticket::after { right: -12px; clip-path: inset(0 50% 0 0); }
+.perf {
+  border-top: 2px dashed var(--color-line);
+}
+
+.mono { font-family: var(--font-mono); }
+.display { font-family: var(--font-display); }
+
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+.safe-top { padding-top: max(env(safe-area-inset-top), 0.75rem); }
+
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+  min-height: 3rem;
+}
+input, button { font-size: 16px; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.35s ease both; }
+@keyframes slide-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.toast-in { animation: slide-in 0.25s ease both; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-deck) 25%, var(--color-deck-2) 50%, var(--color-deck) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* sky header: drifting clouds and a plane */
+.sky {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1d6fd1 0%, #3b9bf0 55%, #8fd0ff 100%);
+  border-bottom-left-radius: 2rem;
+  border-bottom-right-radius: 2rem;
+}
+.cloud { position: absolute; fill: #fff; opacity: 0.9; will-change: transform; }
+.cloud.c1 { top: 18%; width: 90px; animation: drift 38s linear infinite; }
+.cloud.c2 { top: 52%; width: 130px; opacity: 0.6; animation: drift 60s linear infinite; animation-delay: -20s; }
+.cloud.c3 { top: 5%; width: 60px; opacity: 0.75; animation: drift 46s linear infinite; animation-delay: -35s; }
+@keyframes drift { from { transform: translateX(-160px); } to { transform: translateX(120vw); } }
+.plane-fly { animation: fly 7s ease-in-out infinite; }
+@keyframes fly { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-6px) rotate(-2deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .cloud, .plane-fly, .skeleton, .rise { animation: none; }
+}

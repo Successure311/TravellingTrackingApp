@@ -1,0 +1,11 @@
+{
+  "name": "Wayfarer - Travel & Stay Log",
+  "short_name": "Wayfarer",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1224",
+  "theme_color": "#0a1224",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
