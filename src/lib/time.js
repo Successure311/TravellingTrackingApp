@@ -40,3 +40,9 @@ export function fmtDay(s) {
 
 export const uid = () =>
   (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`).slice(0, 18);
+
+// Whole days, hours and minutes of a duration in minutes: 25h -> 1 day 1 h, 24h -> 1 day 0 h.
+export function splitDuration(totalMins) {
+  const t = Math.max(0, Math.round(totalMins));
+  return { d: Math.floor(t / 1440), h: Math.floor((t % 1440) / 60), m: t % 60 };
+}

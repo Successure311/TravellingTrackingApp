@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { analyse, availableYears } from "../lib/analytics.js";
-import { fmtDuration, MONTHS, fmtDay } from "../lib/time.js";
+import { fmtDuration, MONTHS, fmtDay, splitDuration } from "../lib/time.js";
 import { MODES, PinIcon } from "./Icons.jsx";
 import PersonPicker, { Avatar } from "./PersonPicker.jsx";
 import { personColor } from "../lib/person.js";
@@ -66,6 +66,9 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
   const modeData = Object.entries(a.byMode)
     .filter(([, v]) => v > 0)
     .map(([name, v]) => ({ name, value: +(v / 60).toFixed(1) }));
+  // every logged stay is one day (24 h); journey time is added on top: 3 h flight + 1 day stay = 1 day 3 h
+  const stayDays = mode === "all" ? a.nightsAway + a.nightsHome : 0;
+  const total = splitDuration(a.totalMins + stayDays * 1440);
   const awayPct = a.nightsAway + a.nightsHome ? Math.round((a.nightsAway / (a.nightsAway + a.nightsHome)) * 100) : 0;
 
   if (loading) {
@@ -116,15 +119,31 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
       <div className="grid grid-cols-2 gap-3">
         <div className="rise col-span-2 overflow-hidden rounded-3xl p-5" style={{ background: "linear-gradient(135deg, #1d6fd1, #3b9bf0 60%, #ffc46b)" }}>
           <p className="text-xs font-semibold uppercase tracking-widest text-white/80">
-            {effectiveWho === "all" ? "Everyone" : effectiveWho} · time in transit
+            {effectiveWho === "all" ? "Everyone" : effectiveWho} · {mode === "all" ? "journeys + stays" : `${mode} journeys`}
           </p>
-          <p className="display mt-1 text-5xl font-bold text-white">
-            {hours.toFixed(hours >= 100 ? 0 : 1)}
-            <span className="ml-1 text-xl font-medium text-white/80">hours</span>
+          <p className="display mt-1 text-5xl font-bold leading-none text-white">
+            {total.d > 0 && (
+              <>
+                {total.d}
+                <span className="mx-1.5 text-xl font-medium text-white/80">{total.d === 1 ? "day" : "days"}</span>
+              </>
+            )}
+            {total.h}
+            <span className="ml-1.5 text-xl font-medium text-white/80">h</span>
+            {total.m > 0 && (
+              <span className="ml-2 text-xl font-medium text-white/80">
+                {total.m} min
+              </span>
+            )}
           </p>
-          <p className="mono mt-1 text-sm text-white/90">
-            {(hours / 24).toFixed(1)} days · {a.trips.length} journeys
-            {delta != null && ` · ${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)}% vs ${year - 1}`}
+          <p className="mono mt-2 text-sm text-white/90">
+            Journeys {fmtDuration(a.totalMins)}
+            {mode === "all" && ` + Stay ${stayDays} ${stayDays === 1 ? "day" : "days"}`}
+          </p>
+          <p className="mono mt-0.5 text-xs text-white/75">
+            {a.trips.length} journeys
+            {mode === "all" && ` · ${a.nightsHome} home · ${a.nightsAway} away`}
+            {delta != null && ` · journey time ${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)}% vs ${year - 1}`}
           </p>
         </div>
         <Kpi label="Cities" value={a.cityCount} color="#ffc46b" foot="places touched" />
