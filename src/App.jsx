@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import TravelForm from "./components/TravelForm.jsx";
 import StayForm from "./components/StayForm.jsx";
 import Insights from "./components/Insights.jsx";
-import { BedIcon, ChartIcon, CloudShape, Logo, RefreshIcon, TicketIcon } from "./components/Icons.jsx";
+import { BedIcon, ChartIcon, CloudShape, Logo, TicketIcon } from "./components/Icons.jsx";
 import { useData } from "./hooks/useData.js";
 import { getLocalPeople, saveLocalPeople } from "./lib/person.js";
 
@@ -77,10 +77,6 @@ export default function App() {
             <span className="display text-lg font-bold tracking-wide text-white">Wayfarer</span>
             <div className="ml-auto flex items-center gap-2">
               {pending > 0 && <span className="mono rounded-full bg-white/25 px-2.5 py-1 text-xs text-white">{pending} syncing</span>}
-              <button onClick={() => refresh(true)} aria-label="Sync with Google Sheet" title="Reload the latest data from your Google Sheet" className="flex h-9 items-center gap-1.5 rounded-full bg-white/20 pl-2.5 pr-3 text-sm font-medium text-white active:bg-white/30">
-                <RefreshIcon width={16} height={16} />
-                Sync
-              </button>
             </div>
           </div>
           <h1 className="display mt-5 text-[28px] font-bold leading-tight text-white">{cur.title}</h1>
