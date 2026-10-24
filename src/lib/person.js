@@ -15,3 +15,20 @@ export function personColor(name) {
   return PALETTE[h % PALETTE.length];
 }
 export const initial = (name) => (String(name).trim()[0] || "?").toUpperCase();
+
+// Names added on this phone stay in the dropdown even before their first trip is saved.
+const LOCAL_KEY = "wayfarer_people";
+export function getLocalPeople() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+export function saveLocalPeople(list) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+}

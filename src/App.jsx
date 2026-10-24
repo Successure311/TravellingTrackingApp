@@ -4,6 +4,7 @@ import StayForm from "./components/StayForm.jsx";
 import Insights from "./components/Insights.jsx";
 import { BedIcon, ChartIcon, CloudShape, Logo, RefreshIcon, TicketIcon } from "./components/Icons.jsx";
 import { useData } from "./hooks/useData.js";
+import { getLocalPeople, saveLocalPeople } from "./lib/person.js";
 
 const TABS = [
   { id: "travel", label: "Travelling", Icon: TicketIcon, title: "Where to next?", sub: "Log a journey" },
@@ -21,7 +22,9 @@ export default function App() {
   });
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
-  const { travel, stay, people, loading, error, pending, refresh } = useData();
+  const { travel, stay, people: syncedPeople, loading, error, pending, refresh } = useData();
+  const [localPeople, setLocalPeople] = useState(getLocalPeople);
+  const people = [...new Set([...syncedPeople, ...localPeople])].sort();
   const [person, setPerson] = useState(() => {
     try {
       return localStorage.getItem("wayfarer_person") || "";
@@ -33,6 +36,11 @@ export default function App() {
   const activePerson = person || people[0] || "";
   const choosePerson = (p) => {
     setPerson(p);
+    if (p && !people.includes(p)) {
+      const next = [...localPeople, p];
+      setLocalPeople(next);
+      saveLocalPeople(next);
+    }
     try {
       localStorage.setItem("wayfarer_person", p);
     } catch {
