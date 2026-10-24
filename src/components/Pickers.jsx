@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import { parseDate, MONTHS } from "../lib/time.js";
 
@@ -89,41 +89,81 @@ export function DateField({ label, value, onChange, min, accent = "#38bdf8" }) {
 }
 
 const to12 = (hhmm) => {
-  const [h, m] = (hhmm || "").split(":").map(Number);
-  if (Number.isNaN(h)) return null;
-  return { h: h % 12 === 0 ? 12 : h % 12, m, pm: h >= 12 };
+  const m = String(hhmm || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  return { hh: String(h % 12 === 0 ? 12 : h % 12), mm: m[2], pm: h >= 12 };
 };
-const to24 = ({ h, m, pm }) => `${String((h % 12) + (pm ? 12 : 0)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 export const fmt12 = (hhmm) => {
   const t = to12(hhmm);
-  return t ? `${t.h}:${String(t.m).padStart(2, "0")} ${t.pm ? "PM" : "AM"}` : "";
+  return t ? `${t.hh}:${t.mm} ${t.pm ? "PM" : "AM"}` : "";
 };
 
 export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({ h: 9, m: 0, pm: false });
+  const [hh, setHh] = useState("");
+  const [mm, setMm] = useState("");
+  const [pm, setPm] = useState(false);
+  const mmRef = useRef(null);
+  const hhRef = useRef(null);
 
   const openSheet = () => {
     const cur = to12(value);
-    if (cur) setDraft(cur);
-    else {
+    if (cur) {
+      setHh(cur.hh);
+      setMm(cur.mm);
+      setPm(cur.pm);
+    } else {
       const n = new Date();
-      setDraft({ h: n.getHours() % 12 || 12, m: Math.round(n.getMinutes() / 5) * 5 % 60, pm: n.getHours() >= 12 });
+      setHh(String(n.getHours() % 12 || 12));
+      setMm(String(n.getMinutes()).padStart(2, "0"));
+      setPm(n.getHours() >= 12);
     }
     setOpen(true);
+    setTimeout(() => hhRef.current?.select(), 80);
+  };
+
+  const hNum = Number(hh);
+  const mNum = Number(mm);
+  const valid = hh !== "" && mm !== "" && hNum >= 1 && hNum <= 12 && mNum >= 0 && mNum <= 59;
+
+  const onHour = (raw) => {
+    let v = raw.replace(/\D/g, "").slice(0, 2);
+    // typed 24-hour value (13-23): convert to 12-hour and flip to PM
+    if (v.length === 2 && Number(v) >= 13 && Number(v) <= 23) {
+      v = String(Number(v) - 12);
+      setPm(true);
+    } else if (v === "00") {
+      v = "12";
+      setPm(false);
+    }
+    setHh(v);
+    // hour is complete: jump to minutes (2 digits, or a single digit that cannot start a valid hour)
+    if (v.length === 2 || (v.length === 1 && Number(v) > 1)) mmRef.current?.focus();
+  };
+
+  const onMin = (raw) => {
+    let v = raw.replace(/\D/g, "").slice(0, 2);
+    if (v.length === 1 && Number(v) > 5) v = "0" + v; // "7" -> 07
+    setMm(v);
   };
 
   const done = () => {
-    onChange(to24(draft));
+    if (!valid) return;
+    const h24 = (hNum % 12) + (pm ? 12 : 0);
+    onChange(`${String(h24).padStart(2, "0")}:${String(mNum).padStart(2, "0")}`);
     setOpen(false);
   };
 
-  const btn = (on) => ({
+  const ampm = (on) => ({
     background: on ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : "var(--color-deck)",
     color: on ? "#0a1224" : undefined,
     borderColor: on ? "transparent" : "var(--color-line)",
     fontWeight: on ? 700 : 500,
   });
+
+  const box =
+    "display h-20 w-[4.5rem] rounded-2xl border border-line bg-deck text-center text-5xl font-bold text-white outline-none focus:border-sky";
 
   return (
     <div>
@@ -146,60 +186,46 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
 
       {open && (
         <Sheet title={label} onClose={() => setOpen(false)}>
-          {/* big readout + AM/PM */}
-          <div className="mb-4 flex items-center justify-center gap-4">
-            <p className="display text-5xl font-bold">
-              {draft.h}:{String(draft.m).padStart(2, "0")}
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {[false, true].map((pm) => (
-                <button
-                  key={String(pm)}
-                  type="button"
-                  onClick={() => setDraft({ ...draft, pm })}
-                  className="h-10 w-16 rounded-xl border text-base"
-                  style={btn(draft.pm === pm)}
-                >
-                  {pm ? "PM" : "AM"}
+          <div className="mb-5 flex items-center justify-center gap-3">
+            <input
+              ref={hhRef}
+              value={hh}
+              onChange={(e) => onHour(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              inputMode="numeric"
+              placeholder="HH"
+              aria-label="Hour"
+              className={box}
+            />
+            <span className="display text-4xl font-bold text-mist">:</span>
+            <input
+              ref={mmRef}
+              value={mm}
+              onChange={(e) => onMin(e.target.value)}
+              onKeyDown={(e) => e.key === "Backspace" && mm === "" && hhRef.current?.focus()}
+              onFocus={(e) => e.target.select()}
+              inputMode="numeric"
+              placeholder="MM"
+              aria-label="Minutes"
+              className={box}
+            />
+            <div className="ml-1 flex flex-col gap-2">
+              {[false, true].map((isPm) => (
+                <button key={String(isPm)} type="button" onClick={() => setPm(isPm)} className="h-[38px] w-16 rounded-xl border text-base" style={ampm(pm === isPm)}>
+                  {isPm ? "PM" : "AM"}
                 </button>
               ))}
             </div>
           </div>
 
-          <p className={lbl}>Hour</p>
-          <div className="mb-3 grid grid-cols-6 gap-2">
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-              <button key={h} type="button" onClick={() => setDraft({ ...draft, h })} className="mono h-11 rounded-xl border text-base" style={btn(draft.h === h)}>
-                {h}
-              </button>
-            ))}
-          </div>
-
-          <p className={lbl}>Minutes</p>
-          <div className="mb-2 grid grid-cols-6 gap-2">
-            {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-              <button key={m} type="button" onClick={() => setDraft({ ...draft, m })} className="mono h-11 rounded-xl border text-base" style={btn(draft.m === m)}>
-                {String(m).padStart(2, "0")}
-              </button>
-            ))}
-          </div>
-          <div className="mb-4 flex items-center justify-center gap-3 text-sm text-mist">
-            Fine tune
-            <button type="button" onClick={() => setDraft({ ...draft, m: (draft.m + 59) % 60 })} className="h-9 w-14 rounded-xl border border-line text-white">
-              −1
-            </button>
-            <button type="button" onClick={() => setDraft({ ...draft, m: (draft.m + 1) % 60 })} className="h-9 w-14 rounded-xl border border-line text-white">
-              +1
-            </button>
-          </div>
-
           <button
             type="button"
             onClick={done}
-            className="display h-14 w-full rounded-2xl text-lg font-bold text-night active:scale-[0.98]"
+            disabled={!valid}
+            className="display h-14 w-full rounded-2xl text-lg font-bold text-night transition active:scale-[0.98] disabled:opacity-35"
             style={{ background: `linear-gradient(90deg, ${accent}, #ffc46b)` }}
           >
-            Set {draft.h}:{String(draft.m).padStart(2, "0")} {draft.pm ? "PM" : "AM"}
+            {valid ? `Set ${hNum}:${String(mNum).padStart(2, "0")} ${pm ? "PM" : "AM"}` : "Enter hour and minutes"}
           </button>
         </Sheet>
       )}
