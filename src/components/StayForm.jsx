@@ -14,7 +14,7 @@ const TYPES = {
   Outside: { label: "Outside Home", color: "#a78bfa", Icon: TentIcon, sub: "Slept elsewhere" },
 };
 
-export default function StayForm({ stays, people, person, setPerson, notify }) {
+export default function StayForm({ stays, people, person, setPerson, onRemovePerson, notify }) {
   const [date, setDate] = useState(todayStr());
   const [type, setType] = useStored("wf_s_type", "Outside");
   const [city, setCity] = useStored("wf_s_city", "");
@@ -68,7 +68,7 @@ export default function StayForm({ stays, people, person, setPerson, notify }) {
   return (
     <form onSubmit={submit} className="space-y-4 rise">
       <div className="rounded-2xl border border-line bg-deck p-4">
-        <PersonPicker people={people} value={person} onChange={setPerson} />
+        <PersonPicker people={people} value={person} onChange={setPerson} onRemove={onRemovePerson} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         {Object.entries(TYPES).map(([key, t]) => {

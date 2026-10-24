@@ -12,7 +12,7 @@ import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
-export default function TravelForm({ trips, people, person, setPerson, notify }) {
+export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
   const [mode, setMode] = useStored("wf_t_mode", "Flight");
   const [source, setSource] = useStored("wf_t_source", "");
   const [dest, setDest] = useStored("wf_t_dest", "");
@@ -96,7 +96,7 @@ export default function TravelForm({ trips, people, person, setPerson, notify })
     <div className="space-y-6">
       <form onSubmit={submit} className="ticket rise" style={{ "--notch": "276px" }}>
         <div className="p-4 pb-0">
-          <PersonPicker people={people} value={person} onChange={setPerson} />
+          <PersonPicker people={people} value={person} onChange={setPerson} onRemove={onRemovePerson} />
         </div>
         {/* mode */}
         <div className="grid grid-cols-3 gap-2 p-4">

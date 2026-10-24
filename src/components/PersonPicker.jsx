@@ -14,7 +14,7 @@ export function Avatar({ name, size = 28 }) {
 }
 
 // Who is travelling: a dropdown of every added name, with "+ Add new traveller" at the bottom.
-export default function PersonPicker({ people, value, onChange, label = "Traveller", allowAll = false, canAdd = true }) {
+export default function PersonPicker({ people, value, onChange, label = "Traveller", allowAll = false, canAdd = true, onRemove }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -101,6 +101,26 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
               <Avatar name={p} />
               <span className="flex-1 text-[15px]">{p}</span>
               {p === value && <span className="text-sky">✓</span>}
+              {onRemove && (
+                <span
+                  role="button"
+                  aria-label={`Remove ${p}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Remove "${p}" from the list?
+
+Their saved trips and stays stay safe in your Google Sheet.`)) {
+                      onRemove(p);
+                      setOpen(false);
+                    }
+                  }}
+                  className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-mist active:bg-white/10 active:text-rose-400"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+                  </svg>
+                </span>
+              )}
             </button>
           ))}
 

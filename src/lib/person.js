@@ -32,3 +32,20 @@ export function saveLocalPeople(list) {
     /* ignore */
   }
 }
+
+// Names removed from the dropdown. Their saved rows stay in the sheet; adding the name again brings it back.
+const HIDDEN_KEY = "wayfarer_people_hidden";
+export function getHiddenPeople() {
+  try {
+    return JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+export function saveHiddenPeople(list) {
+  try {
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+}

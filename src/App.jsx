@@ -4,7 +4,7 @@ import StayForm from "./components/StayForm.jsx";
 import Insights from "./components/Insights.jsx";
 import { BedIcon, ChartIcon, CloudShape, Logo, TicketIcon } from "./components/Icons.jsx";
 import { useData } from "./hooks/useData.js";
-import { getLocalPeople, saveLocalPeople } from "./lib/person.js";
+import { getHiddenPeople, getLocalPeople, saveHiddenPeople, saveLocalPeople } from "./lib/person.js";
 
 const TABS = [
   { id: "travel", label: "Travelling", Icon: TicketIcon, title: "Where to next?", sub: "Log a journey" },
@@ -24,7 +24,8 @@ export default function App() {
   const timer = useRef(null);
   const { travel, stay, people: syncedPeople, loading, error, pending, refresh } = useData();
   const [localPeople, setLocalPeople] = useState(getLocalPeople);
-  const people = [...new Set([...syncedPeople, ...localPeople])].sort();
+  const [hidden, setHidden] = useState(getHiddenPeople);
+  const people = [...new Set([...syncedPeople, ...localPeople])].filter((p) => !hidden.includes(p)).sort();
   const [person, setPerson] = useState(() => {
     try {
       return localStorage.getItem("wayfarer_person") || "";
@@ -34,8 +35,22 @@ export default function App() {
   });
   // remember the last traveller; fall back to the first known one
   const activePerson = person || people[0] || "";
+  const removePerson = (p) => {
+    const nextHidden = [...new Set([...hidden, p])];
+    setHidden(nextHidden);
+    saveHiddenPeople(nextHidden);
+    const nextLocal = localPeople.filter((x) => x !== p);
+    setLocalPeople(nextLocal);
+    saveLocalPeople(nextLocal);
+    if (activePerson === p) choosePerson("");
+  };
   const choosePerson = (p) => {
     setPerson(p);
+    if (hidden.includes(p)) {
+      const next = hidden.filter((x) => x !== p);
+      setHidden(next);
+      saveHiddenPeople(next);
+    }
     if (p && !people.includes(p)) {
       const next = [...localPeople, p];
       setLocalPeople(next);
@@ -87,8 +102,8 @@ export default function App() {
       {error && <p className="mx-4 mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
 
       <main className="px-4 pt-5">
-        {tab === "travel" && <TravelForm trips={travel} people={people} person={activePerson} setPerson={choosePerson} notify={notify} />}
-        {tab === "stay" && <StayForm stays={stay} people={people} person={activePerson} setPerson={choosePerson} notify={notify} />}
+        {tab === "travel" && <TravelForm trips={travel} people={people} person={activePerson} setPerson={choosePerson} onRemovePerson={removePerson} notify={notify} />}
+        {tab === "stay" && <StayForm stays={stay} people={people} person={activePerson} setPerson={choosePerson} onRemovePerson={removePerson} notify={notify} />}
         {tab === "insights" && <Insights travel={travel} stay={stay} people={people} person={activePerson} loading={loading} />}
       </main>
 
