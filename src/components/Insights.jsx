@@ -4,7 +4,6 @@ import { analyse, availableYears } from "../lib/analytics.js";
 import { fmtDuration, MONTHS, fmtDay, splitDuration } from "../lib/time.js";
 import { MODES, PinIcon } from "./Icons.jsx";
 import PersonPicker, { Avatar } from "./PersonPicker.jsx";
-import TravelMap from "./TravelMap.jsx";
 import { personColor } from "../lib/person.js";
 
 const MODE_COLORS = { Flight: "#38bdf8", Train: "#fbbf24", Car: "#34d399" };
@@ -70,7 +69,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
   // every logged stay is one day (24 h); journey time is added on top: 3 h flight + 1 day stay = 1 day 3 h
   const stayDays = mode === "all" ? a.nightsAway + a.nightsHome : 0;
   const total = splitDuration(a.totalMins + stayDays * 1440);
-  const mapStays = stay.filter((s) => year === "all" || s.date.startsWith(String(year)));
   const awayPct = a.nightsAway + a.nightsHome ? Math.round((a.nightsAway / (a.nightsAway + a.nightsHome)) * 100) : 0;
 
   if (loading) {
@@ -305,9 +303,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
       <Card title={`Year at a glance · ${a.heat.year}`} sub="Blue = travel day, violet = away, orange = home">
         <Heatmap days={a.heat.days} />
       </Card>
-
-      {/* maps: India first; a globe appears when there are places abroad */}
-      <TravelMap trips={a.trips} stays={mapStays} />
 
       {/* city chips */}
       <Card title="Cities visited" sub={`${a.cityList.length} places`}>
