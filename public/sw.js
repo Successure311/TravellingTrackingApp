@@ -1,6 +1,6 @@
 // Minimal app-shell service worker: network-first for pages, cache-first for static assets.
 // Sheet API calls (script.google.com) are never cached.
-const CACHE = "wayfarer-v1";
+const CACHE = "triplog-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => {

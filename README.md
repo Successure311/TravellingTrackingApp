@@ -1,4 +1,4 @@
-# Wayfarer: travel & stay log
+# TripLog: travel & stay log
 
 Mobile-first React app. Log journeys (Flight / Train / Car) and nightly stays (Home / Outside Home). Data is saved to a Google Sheet through Google Apps Script. Hosted free on Cloudflare Pages.
 
@@ -29,7 +29,7 @@ Repo: https://github.com/Successure311/TravellingTrackingApp
 ```
 git init
 git add -A
-git commit -m "Wayfarer travel tracker"
+git commit -m "TripLog travel tracker"
 git branch -M main
 git remote add origin https://github.com/Successure311/TravellingTrackingApp.git
 git push -u origin main

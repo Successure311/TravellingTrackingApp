@@ -1,5 +1,5 @@
 /**
- * Wayfarer - Google Apps Script backend.
+ * TripLog - Google Apps Script backend.
  *
  * SETUP (also in README.md):
  *  1. Create a Google Sheet (any name).

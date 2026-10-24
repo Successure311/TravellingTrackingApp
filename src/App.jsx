@@ -89,7 +89,7 @@ export default function App() {
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <Logo />
-            <span className="display text-lg font-bold tracking-wide text-white">Wayfarer</span>
+            <span className="display text-lg font-bold tracking-wide text-white">TripLog</span>
             <div className="ml-auto flex items-center gap-2">
               {pending > 0 && <span className="mono rounded-full bg-white/25 px-2.5 py-1 text-xs text-white">{pending} syncing</span>}
             </div>
