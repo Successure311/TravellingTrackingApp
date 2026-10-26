@@ -10,7 +10,8 @@ const TD = "mono py-2.5 text-right text-[13px] first:text-left";
 // travel time + stay days as "2d 3h" (24 h rolls into a new day)
 const dh = (mins) => {
   if (!mins) return "–";
-  const { d, h } = splitDuration(mins);
+  const { d, h, m } = splitDuration(mins);
+  if (!d && !h) return `${m}m`;
   return d ? `${d}d ${h}h` : `${h}h`;
 };
 const num = (n) => (n ? n : "–");
@@ -120,12 +121,11 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
             <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-line">
-                  <th className={`${TH} w-[17%]`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
-                  <th className={`${TH} w-[13%]`}>Trips</th>
-                  <th className={`${TH} w-[20%]`}>Travel</th>
-                  <th className={`${TH} w-[13%]`} style={{ color: "#fb923c" }}>Home</th>
-                  <th className={`${TH} w-[13%]`} style={{ color: "#a78bfa" }}>Away</th>
-                  <th className={`${TH} w-[24%]`}>Total</th>
+                  <th className={`${TH} w-[20%]`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
+                  <th className={`${TH} w-[14%]`}>Trips</th>
+                  <th className={`${TH} w-[22%]`}>Travel</th>
+                  <th className={`${TH} w-[22%]`}>Stay</th>
+                  <th className={`${TH} w-[22%]`}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,8 +134,7 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                     <td className={`${TD} font-semibold`}>{r.label}</td>
                     <td className={TD}>{num(r.trips)}</td>
                     <td className={TD}>{r.mins ? fmtDuration(r.mins) : "–"}</td>
-                    <td className={TD}>{num(r.home)}</td>
-                    <td className={TD}>{num(r.away)}</td>
+                    <td className={TD}>{dh(r.stayMins)}</td>
                     <td className={`${TD} font-bold text-sky`}>{dh(r.mins + r.stayMins)}</td>
                   </tr>
                 ))}
@@ -145,15 +144,14 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                   <td className={`${TD} font-bold`}>All</td>
                   <td className={`${TD} font-bold`}>{s.totals.trips}</td>
                   <td className={`${TD} font-bold`}>{fmtDuration(s.totals.mins)}</td>
-                  <td className={`${TD} font-bold`}>{s.totals.home}</td>
-                  <td className={`${TD} font-bold`}>{s.totals.away}</td>
+                  <td className={`${TD} font-bold`}>{dh(s.totals.stayMins)}</td>
                   <td className={`${TD} font-bold`} style={{ color: "#ffc46b" }}>
                     {dh(s.totals.mins + s.totals.stayMins)}
                   </td>
                 </tr>
               </tfoot>
             </table>
-            <p className="mt-2 text-[11px] text-mist">Travel = time on the move. Home / Away = nights logged. Stay time runs from arriving in a city until the next trip leaves it; a night with no onward trip counts as a full 24 h. Total = travel + stay, 24 h rolls into a new day.</p>
+            <p className="mt-2 text-[11px] text-mist">Travel = time on the move. Stay = time in a city, from arriving until the next trip leaves it (a night with no onward trip counts as a full 24 h). Total = travel + stay, 24 h rolls into a new day.</p>
           </Card>
 
           {/* by mode */}
