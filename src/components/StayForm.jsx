@@ -16,6 +16,7 @@ const TYPES = {
 export default function StayForm({ stays, people, person, setPerson, onRemovePerson, notify }) {
   const [date, setDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
+  const [rangeMode, setRangeMode] = useState(false); // off: tapping a day picks that one day (as always)
   const [calKey, setCalKey] = useState(0); // remounts the calendar after each save so it starts fresh
   const [type, setType] = useState("Outside");
   const [city, setCity] = useState("");
@@ -55,7 +56,13 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     setType("Outside");
     setCity("");
     setPerson("");
+    setRangeMode(false);
     setCalKey((k) => k + 1);
+  };
+
+  const toggleRange = () => {
+    if (rangeMode) setEndDate(date); // switching back: keep just the first day
+    setRangeMode(!rangeMode);
   };
 
   const pickType = (t) => {
@@ -128,7 +135,26 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         })}
       </div>
 
-      <BigCalendar key={calKey} value={date} end={endDate} onRange={pickRange} marks={marks} />
+      <div>
+        <button
+          type="button"
+          onClick={toggleRange}
+          aria-pressed={rangeMode}
+          className="mb-2 flex items-center gap-3 rounded-full border py-1.5 pl-3 pr-2 text-sm font-semibold transition active:scale-95"
+          style={{ borderColor: rangeMode ? "var(--color-dawn)" : "var(--color-line)", color: rangeMode ? "var(--color-dawn)" : "var(--color-mist)", background: rangeMode ? "rgba(255,196,107,.12)" : "transparent" }}
+        >
+          Date range
+          <span className="relative h-5 w-9 rounded-full transition" style={{ background: rangeMode ? "var(--color-dawn)" : "var(--color-line)" }}>
+            <span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" style={{ left: rangeMode ? "1.1rem" : "0.125rem" }} />
+          </span>
+        </button>
+        <BigCalendar
+          key={`${calKey}-${rangeMode}`}
+          value={date}
+          marks={marks}
+          {...(rangeMode ? { end: endDate, onRange: pickRange } : { onChange: (d) => pickRange(d, d) })}
+        />
+      </div>
 
       <div className="rounded-2xl border border-line bg-deck p-4">
         <CityInput

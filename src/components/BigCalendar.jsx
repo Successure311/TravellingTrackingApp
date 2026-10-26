@@ -81,7 +81,7 @@ export default function BigCalendar({ value, onChange, marks, min, legend = true
               onClick={() => pick(ds)}
               className="relative flex aspect-square flex-col items-center justify-center rounded-2xl text-lg font-medium transition active:scale-90 disabled:opacity-25"
               style={{
-                background: isSel ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : inRange ? "rgba(255,196,107,.2)" : "transparent",
+                background: isSel ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : inRange ? "rgba(255,196,107,.3)" : "transparent",
                 color: isSel ? "#0a1224" : undefined,
                 border: isToday && !isSel ? "1.5px solid var(--color-sky)" : "1.5px solid transparent",
                 fontWeight: isSel ? 700 : 500,
