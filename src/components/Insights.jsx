@@ -194,6 +194,46 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
         </>
       )}
 
+      {/* every unique city, A to Z */}
+      {s.cities.length > 0 && (
+        <Card title={`Cities visited · ${s.cities.length}`}>
+          <table className="w-full table-fixed border-collapse">
+            <thead>
+              <tr className="border-b border-line">
+                <th className={`${TH} w-[10%]`}>#</th>
+                <th className={`${TH} w-[50%]`} style={{ textAlign: "left" }}>City</th>
+                <th className={`${TH} w-[20%]`}>Arrivals</th>
+                <th className={`${TH} w-[20%]`}>Nights</th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.cities.map((c, i) => {
+                const letter = c.name[0].toUpperCase();
+                const newLetter = i === 0 || s.cities[i - 1].name[0].toUpperCase() !== letter;
+                return [
+                  newLetter && (
+                    <tr key={`h-${letter}`}>
+                      <td colSpan={4} className="pb-1 pt-3 text-xs font-bold tracking-widest" style={{ color: "#ffc46b" }}>
+                        {letter}
+                      </td>
+                    </tr>
+                  ),
+                  <tr key={c.name} className="border-b border-line/60">
+                    <td className={`${TD} text-mist`}>{i + 1}</td>
+                    <td className={`${TD} truncate font-sans text-sm`} style={{ textAlign: "left" }}>
+                      {c.name}
+                    </td>
+                    <td className={TD}>{num(c.arrivals)}</td>
+                    <td className={TD}>{num(c.nights)}</td>
+                  </tr>,
+                ];
+              })}
+            </tbody>
+          </table>
+          <p className="mt-2 text-[11px] text-mist">Every city that appears as a start, destination or stay. Arrivals = times you reached it. Nights = nights stayed away from home.</p>
+        </Card>
+      )}
+
       {/* per traveller, only when looking at everyone */}
       {effectiveWho === "all" && everyone.people.length > 1 && (
         <Card title="By traveller">

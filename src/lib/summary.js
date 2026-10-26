@@ -57,6 +57,15 @@ export function summarize({ travel, stay, year }) {
   stays.filter((s) => s.type !== "Home").forEach((s) => (place(s.city).nights += 1));
   const places = [...pl.values()].sort((a, b) => b.arrivals + b.nights - (a.arrivals + a.nights) || b.mins - a.mins);
 
+  // every unique city that appears (origin, destination or stay), A to Z
+  const cityMap = new Map(places.map((p) => [p.name, { name: p.name, arrivals: p.arrivals, nights: p.nights }]));
+  const city = (n) => {
+    if (!cityMap.has(n)) cityMap.set(n, { name: n, arrivals: 0, nights: 0 });
+  };
+  trips.forEach((t) => city(t.source));
+  stays.forEach((s) => city(s.city));
+  const cities = [...cityMap.values()].filter((c) => c.name).sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+
   // per traveller (used when looking at everyone)
   const pp = new Map();
   const person = (n) => {
@@ -71,5 +80,5 @@ export function summarize({ travel, stay, year }) {
   stays.forEach((s) => (person(s.person).days += 1));
   const people = [...pp.values()].sort((a, b) => b.mins + b.days * 1440 - (a.mins + a.days * 1440));
 
-  return { rows: list, totals, modes, places, people };
+  return { rows: list, totals, modes, places, cities, people };
 }
