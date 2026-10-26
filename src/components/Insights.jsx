@@ -52,9 +52,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
     );
   }
 
-  const total = splitDuration(s.totals.mins + s.totals.stayMins);
-  const unit = "mx-1 text-lg font-medium text-white/80";
-
   return (
     <div className="space-y-4">
       {/* filters: traveller, year, month */}
@@ -91,25 +88,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
             ))}
           </select>
         </div>
-      </div>
-
-      {/* total */}
-      <div className="rise rounded-3xl p-5" style={{ background: "linear-gradient(135deg, #1d6fd1, #3b9bf0 60%, #ffc46b)" }}>
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/80">Total time · journeys + stays</p>
-        <p className="display mt-1 text-5xl font-bold leading-none text-white">
-          {total.d > 0 && (
-            <>
-              {total.d}
-              <span className={unit}>{total.d === 1 ? "day" : "days"}</span>
-            </>
-          )}
-          {total.h}
-          <span className={unit}>h</span>
-          {total.m > 0 && <span className="text-lg font-medium text-white/80">{total.m} min</span>}
-        </p>
-        <p className="mono mt-2 text-sm text-white/90">
-          Journeys {fmtDuration(s.totals.mins)} + Stay {s.totals.stayMins ? dh(s.totals.stayMins) : "0h"}
-        </p>
       </div>
 
       {s.rows.length === 0 ? (
@@ -182,57 +160,44 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
             </table>
           </Card>
 
-          {/* top places */}
-          <Card title="Top places">
-            <table className="w-full table-fixed border-collapse">
-              <thead>
-                <tr className="border-b border-line">
-                  <th className={`${TH} w-[40%]`}>Place</th>
-                  <th className={`${TH} w-[20%]`}>Arrivals</th>
-                  <th className={`${TH} w-[20%]`}>Nights</th>
-                  <th className={`${TH} w-[20%]`}>Travel</th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.places.slice(0, 5).map((p) => (
-                  <tr key={p.name} className="border-b border-line/60 last:border-0">
-                    <td className={`${TD} truncate font-sans text-sm`}>{p.name}</td>
-                    <td className={TD}>{num(p.arrivals)}</td>
-                    <td className={TD}>{num(p.nights)}</td>
-                    <td className={TD}>{p.mins ? fmtDuration(p.mins) : "–"}</td>
+          {/* top places: nights away only */}
+          {s.places.some((p) => p.nights > 0) && (
+            <Card title="Top places">
+              <table className="w-full table-fixed border-collapse">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className={`${TH} w-[70%]`}>Place</th>
+                    <th className={`${TH} w-[30%]`}>Stay days</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+                </thead>
+                <tbody>
+                  {s.places
+                    .filter((p) => p.nights > 0)
+                    .sort((x, y) => y.nights - x.nights)
+                    .slice(0, 5)
+                    .map((p) => (
+                      <tr key={p.name} className="border-b border-line/60 last:border-0">
+                        <td className={`${TD} truncate font-sans text-sm`}>{p.name}</td>
+                        <td className={TD}>{p.nights}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
         </>
       )}
 
       {/* every unique city, A to Z */}
       {s.cities.length > 0 && (
         <Card title={`Cities visited · ${s.cities.length}`}>
-          <table className="w-full table-fixed border-collapse">
-            <thead>
-              <tr className="border-b border-line">
-                <th className={`${TH} w-[10%]`}>#</th>
-                <th className={`${TH} w-[50%]`} style={{ textAlign: "left" }}>City</th>
-                <th className={`${TH} w-[20%]`}>Arrivals</th>
-                <th className={`${TH} w-[20%]`}>Nights</th>
-              </tr>
-            </thead>
-            <tbody>
-              {s.cities.map((c, i) => (
-                <tr key={c.name} className="border-b border-line/60 last:border-0">
-                  <td className={`${TD} text-mist`}>{i + 1}</td>
-                  <td className={`${TD} truncate font-sans text-sm`} style={{ textAlign: "left" }}>
-                    {c.name}
-                  </td>
-                  <td className={TD}>{num(c.arrivals)}</td>
-                  <td className={TD}>{num(c.nights)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {s.cities.map((c) => (
+              <span key={c.name} className="rounded-full border border-line bg-night/60 px-3 py-1.5 text-sm">
+                {c.name}
+              </span>
+            ))}
+          </div>
         </Card>
       )}
 
