@@ -4,7 +4,10 @@ import StayForm from "./components/StayForm.jsx";
 import Insights from "./components/Insights.jsx";
 import { BedIcon, ChartIcon, CloudShape, Logo, TicketIcon } from "./components/Icons.jsx";
 import { useData } from "./hooks/useData.js";
+import { clearSuggestions } from "./data/indianCities.js";
 import { getHiddenPeople, getLocalPeople, saveHiddenPeople, saveLocalPeople } from "./lib/person.js";
+
+const FRESH_ID = "fresh-2026-10-26";
 
 const TABS = [
   { id: "travel", label: "Travelling", Icon: TicketIcon, title: "Where to next?", sub: "Log a journey" },
@@ -62,6 +65,26 @@ export default function App() {
       /* ignore */
     }
   };
+
+  // One-time "start fresh" (bump FRESH_ID to run it again): forgets recent places, typed places,
+  // traveller names and unsent form input on this phone, and stops suggesting what is already in
+  // the sheet. Trips and stays in the Google Sheet are not touched.
+  useEffect(() => {
+    if (loading || error) return;
+    try {
+      if (localStorage.getItem("wayfarer_fresh") === FRESH_ID) return;
+      clearSuggestions([...travel.flatMap((t) => [t.source, t.destination]), ...stay.map((s) => s.city)]);
+      saveHiddenPeople([...new Set([...syncedPeople, ...localPeople, ...hidden])]);
+      ["wayfarer_recent_places", "wayfarer_people", "wayfarer_person"].forEach((k) => localStorage.removeItem(k));
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("wf_"))
+        .forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem("wayfarer_fresh", FRESH_ID);
+      window.location.reload();
+    } catch {
+      /* storage blocked: nothing to clear */
+    }
+  }, [loading, error]);
 
   const notify = useCallback((msg, type = "ok") => {
     clearTimeout(timer.current);

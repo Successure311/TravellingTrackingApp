@@ -40,12 +40,30 @@ try {
 } catch {
   /* ignore */
 }
+// Places we must not suggest again (what was already in the sheet when the user chose "start fresh").
+const IGNORED_KEY = "wayfarer_ignored_places";
+const ignored = new Set();
+try {
+  JSON.parse(localStorage.getItem(IGNORED_KEY) || "[]").forEach((n) => ignored.add(n));
+} catch {
+  /* ignore */
+}
+const saveIgnored = () => {
+  try {
+    localStorage.setItem(IGNORED_KEY, JSON.stringify([...ignored]));
+  } catch {
+    /* ignore */
+  }
+};
+
 const isKnown = (k) => ALIASES[k] || canonByKey.has(k) || byKey.has(k) || stateByKey.has(k);
 
 export function addCustomPlace(input, persist = true) {
   const name = canonicalCity(input);
   const k = name.toLowerCase();
   if (!name || isKnown(k) || custom.has(k)) return;
+  if (!persist && ignored.has(k)) return; // sheet rows seen before the reset
+  if (persist && ignored.delete(k)) saveIgnored(); // the user typed it again: welcome back
   custom.set(k, name);
   if (persist) {
     try {
@@ -54,6 +72,17 @@ export function addCustomPlace(input, persist = true) {
       /* ignore */
     }
   }
+}
+// "Start fresh": forget typed places, and stop suggesting the ones already in the sheet.
+export function clearSuggestions(placeNames) {
+  custom.clear();
+  try {
+    localStorage.removeItem(CUSTOM_KEY);
+  } catch {
+    /* ignore */
+  }
+  placeNames.forEach((n) => ignored.add(canonicalCity(n).toLowerCase()));
+  saveIgnored();
 }
 export const registerPlaces = (names) => names.forEach((n) => addCustomPlace(n, false));
 
