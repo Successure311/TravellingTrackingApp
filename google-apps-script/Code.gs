@@ -26,7 +26,8 @@ var TIME_COLS = ['DepartTime', 'ArrivalTime'];
 var CACHE_KEY = 'all_v3';
 
 function setup() {
-  Object.keys(SCHEMA).forEach(function (name) { sheet_(name); });
+  // also puts the existing rows in date order
+  Object.keys(SCHEMA).forEach(function (name) { sortSheet_(sheet_(name), name); });
 }
 
 function pad2_(n) { return ('0' + n).slice(-2); }
@@ -177,6 +178,17 @@ function writeRow_(sh, name, rowNum, values) {
   sh.getRange(rowNum, 1, 1, values.length).setValues([values]);
 }
 
+// Keep the sheet in date order (oldest first), whatever order the entries were made in.
+// Dates and times are plain "yyyy-MM-dd" / "HH:mm" text, so they sort correctly as text.
+function sortSheet_(sh, name) {
+  var last = sh.getLastRow();
+  if (last < 3) return;
+  var cols = SCHEMA[name];
+  var by = name === 'Travel' ? ['DepartDate', 'DepartTime', 'Id'] : ['Date', 'Person'];
+  var spec = by.map(function (c) { return { column: cols.indexOf(c) + 1, ascending: true }; });
+  sh.getRange(2, 1, last - 1, cols.length).sort(spec);
+}
+
 // next sequential Id: highest existing number + 1
 function nextId_(sh) {
   var last = sh.getLastRow();
@@ -231,6 +243,7 @@ function doPost(e) {
       if (body.cid) remember_(body.cid);
     }
 
+    if (body.action !== 'delete') sortSheet_(sh, name);
     SpreadsheetApp.flush();
     CacheService.getScriptCache().remove(CACHE_KEY);
     return json_({ ok: true });
