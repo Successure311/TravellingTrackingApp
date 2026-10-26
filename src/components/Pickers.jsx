@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import BigCalendar from "./BigCalendar.jsx";
 import { parseDate, MONTHS } from "../lib/time.js";
 
@@ -26,7 +27,7 @@ function useVisibleArea(enabled) {
 }
 
 // aboveKeyboard: the window sits just above the on-screen keyboard instead of behind it.
-function Sheet({ title, onClose, children, aboveKeyboard = false }) {
+export function Sheet({ title, onClose, children, aboveKeyboard = false }) {
   const box = useVisibleArea(aboveKeyboard);
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -36,7 +37,8 @@ function Sheet({ title, onClose, children, aboveKeyboard = false }) {
     };
   }, []);
   const floating = aboveKeyboard && box;
-  return (
+  // rendered on the page itself (not inside the form), so Enter in a box can never submit the form
+  return createPortal(
     <div
       className={`z-[60] flex items-end justify-center bg-black/60 ${floating ? "fixed" : "fixed inset-0"}`}
       style={floating ? { top: box.top, left: box.left, width: box.width, height: box.height } : undefined}
@@ -54,7 +56,8 @@ function Sheet({ title, onClose, children, aboveKeyboard = false }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -218,6 +221,12 @@ export function TimeField({ label, value, onChange, accent = "#38bdf8" }) {
               autoFocus
               value={hh}
               onChange={(e) => onHour(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  mmRef.current?.focus();
+                }
+              }}
               onFocus={(e) => e.target.select()}
               inputMode="numeric"
               pattern="[0-9]*"

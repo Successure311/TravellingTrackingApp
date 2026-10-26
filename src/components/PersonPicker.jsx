@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Sheet } from "./Pickers.jsx";
 import { initial, normPerson, personColor } from "../lib/person.js";
 
 export function Avatar({ name, size = 28 }) {
@@ -27,7 +28,6 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
   }, []);
 
   const list = value && value !== "all" && !people.includes(value) ? [...people, value] : people;
-  const showInput = canAdd && (adding || list.length === 0);
   const everyone = (size) => (
     <span className="display flex shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold" style={{ width: size, height: size }}>
       All
@@ -43,6 +43,12 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
     setOpen(false);
   };
 
+  const startAdding = () => {
+    setOpen(false);
+    setDraft("");
+    setAdding(true);
+  };
+
   const pick = (p) => {
     onChange(p);
     setOpen(false);
@@ -54,7 +60,7 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist">{label}</span>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (canAdd && list.length === 0 ? startAdding() : setOpen((o) => !o))}
         className="flex h-14 w-full items-center gap-3 rounded-xl border border-line bg-night/60 px-3 text-left active:border-sky"
         style={{ borderColor: open ? "var(--color-sky)" : undefined }}
       >
@@ -124,35 +130,43 @@ Their saved trips and stays stay safe in your Google Sheet.`)) {
             </button>
           ))}
 
-          {canAdd && !showInput && (
-            <button type="button" onClick={() => setAdding(true)} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-dawn">
+          {canAdd && (
+            <button type="button" onClick={startAdding} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-dawn">
               + Add new traveller
             </button>
           )}
-
-          {showInput && (
-            <div className="flex gap-2 p-2">
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-                placeholder="Traveller name"
-                autoCapitalize="words"
-                className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none placeholder:text-mist/50 focus:border-sky"
-              />
-              <button
-                type="button"
-                onClick={add}
-                disabled={!draft.trim()}
-                className="display rounded-xl px-5 font-bold text-night disabled:opacity-35"
-                style={{ background: "linear-gradient(90deg,#ff7a59,#ffc46b)" }}
-              >
-                Add
-              </button>
-            </div>
-          )}
         </div>
+      )}
+
+      {adding && (
+        <Sheet title="New traveller" onClose={() => setAdding(false)} aboveKeyboard>
+          <div className="flex items-center gap-2 rounded-xl border border-sky bg-night px-3">
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+              type="text"
+              inputMode="text"
+              enterKeyHint="done"
+              placeholder="Traveller name"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="words"
+              spellCheck={false}
+              className="h-12 min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-mist/50"
+            />
+            <button
+              type="button"
+              onClick={add}
+              disabled={!draft.trim()}
+              className="display rounded-lg px-4 py-1.5 text-sm font-bold text-night disabled:opacity-35"
+              style={{ background: "linear-gradient(90deg,#ff7a59,#ffc46b)" }}
+            >
+              Add
+            </button>
+          </div>
+        </Sheet>
       )}
     </div>
   );
