@@ -151,7 +151,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                 </tr>
               </tfoot>
             </table>
-            <p className="mt-2 text-[11px] text-mist">Travel = time on the move. Stay = time in a city, from arriving until the next trip leaves it (a night with no onward trip counts as a full 24 h). Total = travel + stay, 24 h rolls into a new day.</p>
           </Card>
 
           {/* by mode */}
@@ -234,7 +233,6 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-[11px] text-mist">Every city that appears as a start, destination or stay. Arrivals = times you reached it. Nights = nights stayed away from home.</p>
         </Card>
       )}
 
