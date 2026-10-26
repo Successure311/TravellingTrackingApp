@@ -33,11 +33,11 @@ export default function BigCalendar({ value, onChange, marks, min, legend = true
   const pick = (ds) => {
     if (!onRange) return onChange(ds);
     const single = !end || end === value;
-    if (anchored && single && ds !== value) {
-      ds > value ? onRange(value, ds) : onRange(ds, value);
+    if (anchored && single && ds > value) {
+      onRange(value, ds); // forward only: 26 -> 30
       setAnchored(false);
     } else {
-      onRange(ds, ds); // first tap, a range already set, or the same day again: start from this day
+      onRange(ds, ds); // first tap, an earlier day, the same day or a finished range: start again from this day
       setAnchored(true);
     }
   };
