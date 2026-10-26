@@ -8,6 +8,7 @@ const listeners = new Set();
 let flushing = false;
 let timer = null;
 let failures = 0;
+const serverFails = new Map(); // key -> times the sheet script rejected a delete
 
 const read = () => {
   try {
@@ -48,7 +49,21 @@ export async function flush() {
     let items = read();
     while (items.length) {
       const [head] = items;
-      await sheetPost(head.payload);
+      try {
+        await sheetPost(head.payload);
+      } catch (err) {
+        // a delete the script keeps rejecting (e.g. it is not updated yet) must not block every other entry
+        if (err.server && head.payload.action === "delete") {
+          const n = (serverFails.get(head.key) || 0) + 1;
+          serverFails.set(head.key, n);
+          if (n >= 4) {
+            items = read().filter((i) => i.key !== head.key);
+            write(items);
+            continue;
+          }
+        }
+        throw err;
+      }
       failures = 0;
       items = read().filter((i) => i.key !== head.key);
       write(items);

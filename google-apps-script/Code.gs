@@ -211,8 +211,14 @@ function doPost(e) {
     var sh = sheet_(name);
 
     if (body.action === 'delete') {
-      var dKey = body.key_column || 'Id';
-      var r = findRow_(sh, dKey, name, body.id);
+      var r;
+      if (body.key_columns) {
+        // Stay rows are identified by Person + Date
+        var dk = body.key_columns;
+        r = findRowMulti_(sh, name, dk, dk.map(function (k) { return body.row[k]; }));
+      } else {
+        r = findRow_(sh, body.key_column || 'Id', name, body.id);
+      }
       if (r > 0) sh.deleteRow(r);
     } else if (body.action === 'upsert') {
       var keys = body.key_columns || [body.key_column];

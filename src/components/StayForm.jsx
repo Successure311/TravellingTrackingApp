@@ -19,7 +19,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
   const [city, setCity] = useState("");
 
   const mine = useMemo(() => stays.filter((s) => s.person === person), [stays, person]);
-  const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [stays]);
+  const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [mine]);
   const marks = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s.type])), [mine]);
   const lastHome = useMemo(() => {
     const homes = mine.filter((s) => s.type === "Home" && s.city).sort((a, b) => b.date.localeCompare(a.date));
@@ -67,6 +67,23 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     setPerson("");
   };
 
+  const existing = byDate[date];
+
+  const remove = () => {
+    if (!existing || !window.confirm(`Delete the stay on ${fmtDay(date)} (${existing.city})?`)) return;
+    enqueue({
+      key: `stay-del-${person}-${date}-${Date.now()}`,
+      kind: "stayDelete",
+      row: { person, date },
+      payload: { sheet: "Stay", action: "delete", key_columns: ["Person", "Date"], row: { Person: person, Date: date } },
+    });
+    notify(`Stay on ${fmtDay(date)} deleted`);
+    setDate(todayStr());
+    setType("Outside");
+    setCity("");
+    setPerson("");
+  };
+
   const accent = TYPES[type].color;
 
   return (
@@ -105,8 +122,14 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         className="display h-14 w-full rounded-2xl text-lg font-bold text-night transition active:scale-[0.98] disabled:opacity-35"
         style={{ background: `linear-gradient(90deg, ${accent}, #ffc46b)` }}
       >
-        {byDate[date] ? "Update stay" : "Save stay"}
+        {existing ? "Update stay" : "Save stay"}
       </button>
+
+      {existing && (
+        <button type="button" onClick={remove} className="h-12 w-full rounded-2xl border border-rose-400/50 text-base font-semibold text-rose-300 transition active:scale-[0.98] active:bg-rose-500/10">
+          Delete this stay
+        </button>
+      )}
     </form>
   );
 }

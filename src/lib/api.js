@@ -18,7 +18,11 @@ export async function sheetPost(payload) {
     body: JSON.stringify(payload),
   });
   const out = await readJson(res);
-  if (out && out.error) throw new Error(out.error);
+  if (out && out.error) {
+    const e = new Error(out.error);
+    e.server = true; // the script answered with an error (not a network problem)
+    throw e;
+  }
   return out;
 }
 

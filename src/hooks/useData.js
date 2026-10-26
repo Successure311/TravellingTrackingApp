@@ -125,6 +125,7 @@ export function useData() {
     for (const item of outbox) {
       if (item.kind === "travel") t.set(item.row.id, item.row);
       else if (item.kind === "delete") t.delete(item.id);
+      else if (item.kind === "stayDelete") s.delete(`${item.row.person}|${item.row.date}`);
       else if (item.kind === "stay") s.set(`${item.row.person}|${item.row.date}`, item.row);
     }
     return { travel: [...t.values()], stay: [...s.values()] };
