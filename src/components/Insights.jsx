@@ -190,7 +190,7 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
 
       {/* every unique city, A to Z */}
       {s.cities.length > 0 && (
-        <Card title={`Cities visited · ${s.cities.length}`}>
+        <Card title={`Cities/Places visited · ${s.cities.length}`}>
           <div className="mt-3 flex flex-wrap gap-2">
             {s.cities.map((c) => (
               <span key={c.name} className="rounded-full border border-line bg-night/60 px-3 py-1.5 text-sm">

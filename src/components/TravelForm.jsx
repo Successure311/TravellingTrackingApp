@@ -22,6 +22,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
   const [dTime, setDTime] = useState("");
   const [aDate, setADate] = useState(todayStr);
   const [aTime, setATime] = useState("");
+  const [editing, setEditing] = useState(null); // a saved journey loaded into the form to be changed
   const accent = MODES[mode].color;
 
   const mins = useMemo(() => minutesBetween(dDate, dTime, aDate, aTime), [dDate, dTime, aDate, aTime]);
@@ -42,30 +43,43 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     e.preventDefault();
     if (!ready) return;
     const id = uid();
+    // editing a journey that is already in the sheet: change that row, otherwise a new one
+    const synced = editing && /^\d+$/.test(editing.id);
+    if (editing && !synced) dequeue(editing.id); // not synced yet: drop the old queued copy
     const row = { id, person, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins };
-    enqueue({
-      key: id,
-      kind: "travel",
-      row,
-      payload: {
-        sheet: "Travel",
-        cid: id, // one-off id so a retried request is never added twice; the sheet assigns Id 1, 2, 3...
-        row: {
-          Person: person,
-          Mode: mode,
-          Source: row.source,
-          DepartDate: dDate,
-          DepartTime: dTime,
-          Destination: row.destination,
+    const cells = (extra) => ({
+      ...extra,
+      Person: person,
+      Mode: mode,
+      Source: row.source,
+      DepartDate: dDate,
+      DepartTime: dTime,
+      Destination: row.destination,
           ArrivalDate: aDate,
           ArrivalTime: aTime,
-        },
-      },
     });
+    if (synced) {
+      row.id = editing.id;
+      enqueue({
+        key: `edit-${editing.id}-${Date.now()}`,
+        kind: "travel",
+        row,
+        payload: { sheet: "Travel", action: "upsert", key_column: "Id", row: cells({ Id: editing.id }) },
+      });
+    } else {
+      enqueue({
+        key: id,
+        kind: "travel",
+        row,
+        // one-off id so a retried request is never added twice; the sheet assigns Id 1, 2, 3...
+        payload: { sheet: "Travel", cid: id, row: cells({}) },
+      });
+    }
     pushRecent(row.source, row.destination);
     addCustomPlace(row.source);
     addCustomPlace(row.destination);
-    notify(`${mode} logged: ${row.source} to ${row.destination} (${fmtDuration(mins)})`);
+    notify(`${mode} ${editing ? "updated" : "logged"}: ${row.source} to ${row.destination} (${fmtDuration(mins)})`);
+    setEditing(null);
     // back to a blank form for the next entry
     setMode("Flight");
     setSource("");
@@ -77,15 +91,30 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     setPerson("");
   };
 
-  const returnTrip = (t) => {
+  // load a saved journey into the form: change anything, then save to replace it
+  const edit = (t) => {
+    setEditing(t);
+    setPerson(t.person);
     setMode(t.mode);
-    setSource(t.destination);
-    setDest(t.source);
-    setDDate(todayStr());
-    setADate(todayStr());
-    setDTime("");
-    setATime("");
+    setSource(t.source);
+    setDest(t.destination);
+    setDDate(t.dDate);
+    setDTime(t.dTime);
+    setADate(t.aDate);
+    setATime(t.aTime);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setMode("Flight");
+    setSource("");
+    setDest("");
+    setDDate(todayStr());
+    setDTime("");
+    setADate(todayStr());
+    setATime("");
+    setPerson("");
   };
 
   const remove = async (t) => {
@@ -114,6 +143,16 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
   return (
     <div className="space-y-6">
       <form onSubmit={submit} className="ticket rise" style={{ "--notch": "276px" }}>
+        {editing && (
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 text-sm">
+            <span className="truncate font-semibold text-dawn">
+              Editing {editing.source} to {editing.destination}
+            </span>
+            <button type="button" onClick={cancelEdit} className="shrink-0 rounded-full border border-line px-3 py-1 text-mist active:scale-95">
+              Cancel
+            </button>
+          </div>
+        )}
         <div className="p-4 pb-0">
           <PersonPicker people={people} value={person} onChange={setPerson} onRemove={onRemovePerson} />
         </div>
@@ -179,7 +218,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
             className="display h-14 w-full rounded-2xl text-lg font-bold text-night transition active:scale-[0.98] disabled:opacity-35"
             style={{ background: `linear-gradient(90deg, ${accent}, #ffc46b)` }}
           >
-            Save journey
+            {editing ? "Update journey" : "Save journey"}
           </button>
         </div>
       </form>
@@ -203,7 +242,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
                       {fmtDay(t.dDate)} · {fmtDuration(t.mins)}
                     </p>
                   </div>
-                  <button onClick={() => returnTrip(t)} aria-label="Return journey" className="p-2 text-mist active:text-sky">
+                  <button onClick={() => edit(t)} aria-label="Edit journey" className="p-2 text-mist active:text-sky">
                     <ReturnIcon width={20} height={20} />
                   </button>
                   <button onClick={() => remove(t)} aria-label="Delete" className="p-2 text-mist active:text-rose-400">
