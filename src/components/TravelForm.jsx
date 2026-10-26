@@ -7,13 +7,14 @@ import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
 import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
-import { fmtDay, fmtDuration, minutesBetween, todayStr, uid } from "../lib/time.js";
+import { fmtDay, fmtDuration, minutesBetween, toDateStr, todayStr, uid } from "../lib/time.js";
 
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
 export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
   const [confirm, confirmUI] = useConfirm();
+  const [level, setLevel] = useState(0); // 0: latest 4; 1: + this month and last month; 2: + the month before; ...
   const [mode, setMode] = useState("Flight");
   const [source, setSource] = useState("");
   const [dest, setDest] = useState("");
@@ -95,7 +96,20 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     notify("Trip removed");
   };
 
-  const recent = trips.filter((t) => t.person === person).sort((a, b) => (b.dDate + b.dTime).localeCompare(a.dDate + a.dTime)).slice(0, 4);
+  const SHOWN = 4;
+  const all = trips.filter((t) => t.person === person).sort((x, y) => (y.dDate + y.dTime).localeCompare(x.dDate + x.dTime));
+  const monthStart = (n) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - n);
+    return toDateStr(d);
+  };
+  // what is visible at a given level: the latest 4, plus every journey since the 1st of (this month - level)
+  const visibleAt = (lv) => (lv === 0 ? all.slice(0, SHOWN) : all.filter((t, i) => i < SHOWN || t.dDate >= monthStart(lv)));
+  const recent = visibleAt(level);
+  let nextLevel = null; // the next level that actually reveals more journeys
+  for (let k = level + 1; k <= 120 && nextLevel === null; k++) if (visibleAt(k).length > recent.length) nextLevel = k;
+  const extra = nextLevel === null ? 0 : visibleAt(nextLevel).length - recent.length;
 
   return (
     <div className="space-y-6">
@@ -199,6 +213,20 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
               );
             })}
           </ul>
+          {(nextLevel !== null || level > 0) && (
+            <div className="mt-3 flex gap-3">
+              {nextLevel !== null && (
+                <button type="button" onClick={() => setLevel(nextLevel)} className="h-11 flex-1 rounded-2xl border border-line text-sm font-semibold text-sky active:scale-[0.98]">
+                  {level === 0 ? "Show more" : "Show older"} · {extra}
+                </button>
+              )}
+              {level > 0 && (
+                <button type="button" onClick={() => setLevel(0)} className="h-11 rounded-2xl border border-line px-5 text-sm font-semibold text-mist active:scale-[0.98]">
+                  Show less
+                </button>
+              )}
+            </div>
+          )}
         </section>
       )}
       {confirmUI}
