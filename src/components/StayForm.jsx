@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
 import PersonPicker from "./PersonPicker.jsx";
@@ -22,6 +22,8 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
   const [calKey, setCalKey] = useState(0); // remounts the calendar after each save so it starts fresh
   const [type, setType] = useState("Outside");
   const [city, setCity] = useState("");
+  const [touched, setTouched] = useState(false); // the user typed or chose something: never overwrite it
+  const [blank, setBlank] = useState(false); // just saved or deleted: stay blank for the next entry
 
   const mine = useMemo(() => stays.filter((s) => s.person === person), [stays, person]);
   const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [mine]);
@@ -30,6 +32,16 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     const homes = mine.filter((s) => s.type === "Home" && s.city).sort((a, b) => b.date.localeCompare(a.date));
     return homes[0]?.city || "";
   }, [mine]);
+
+  // The selected day already has a stay (say today, right after opening the app): show it, so the
+  // form matches the "Update stay" button. Re-runs when the data arrives or the traveller changes,
+  // but never over something the user typed, and not straight after a save.
+  const dayStay = byDate[date];
+  useEffect(() => {
+    if (touched || blank || rangeMode || date !== endDate || !dayStay) return;
+    setType(dayStay.type === "Home" ? "Home" : "Outside");
+    setCity(dayStay.city);
+  }, [dayStay, date, endDate, rangeMode, touched, blank]);
 
   const dates = useMemo(() => datesBetween(date, endDate), [date, endDate]);
   const isRange = dates.length > 1;
@@ -41,6 +53,8 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
   const pickRange = (a, b) => {
     setDate(a);
     setEndDate(b);
+    setTouched(false);
+    setBlank(false);
     if (a !== b) return;
     const found = byDate[a];
     if (found) {
@@ -58,6 +72,8 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     setType("Outside");
     setCity("");
     setPerson("");
+    setTouched(false);
+    setBlank(true);
     setRangeMode(false);
     setCalKey((k) => k + 1);
   };
@@ -68,6 +84,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
   };
 
   const pickType = (t) => {
+    setTouched(true);
     setType(t);
     if (t === "Home" && !city && lastHome) setCity(lastHome);
   };
@@ -162,7 +179,10 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         <CityInput
           label={isRange ? `City · ${fmtDay(date)} to ${fmtDay(endDate)} · ${dates.length} days` : `City on ${fmtDay(date)}`}
           value={city}
-          onChange={setCity}
+          onChange={(v) => {
+            setTouched(true);
+            setCity(v);
+          }}
           accent={accent}
           placeholder="Where did you stay?"
           trailing={
