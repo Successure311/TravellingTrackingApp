@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { useStored } from "../hooks/useStored.js";
+import { useMemo, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
 import PersonPicker from "./PersonPicker.jsx";
@@ -16,8 +15,8 @@ const TYPES = {
 
 export default function StayForm({ stays, people, person, setPerson, onRemovePerson, notify }) {
   const [date, setDate] = useState(todayStr());
-  const [type, setType] = useStored("wf_s_type", "Outside");
-  const [city, setCity] = useStored("wf_s_city", "");
+  const [type, setType] = useState("Outside");
+  const [city, setCity] = useState("");
 
   const mine = useMemo(() => stays.filter((s) => s.person === person), [stays, person]);
   const byDate = useMemo(() => Object.fromEntries(mine.map((s) => [s.date, s])), [stays]);
@@ -27,14 +26,15 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     return homes[0]?.city || "";
   }, [mine]);
 
-  // opening a day that already has an entry shows it for editing
-  useEffect(() => {
-    const existing = byDate[date];
+  // tapping a day that already has an entry shows it, so it can be edited
+  const pickDate = (d) => {
+    setDate(d);
+    const existing = byDate[d];
     if (existing) {
       setType(existing.type === "Home" ? "Home" : "Outside");
       setCity(existing.city);
     }
-  }, [date, byDate]);
+  };
 
   const pickType = (t) => {
     setType(t);
@@ -56,11 +56,11 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     pushRecent(row.city);
     addCustomPlace(row.city);
     notify(`${fmtDay(date)}: ${type === "Home" ? "Home" : "Outside"}, ${row.city}`);
-    // jump to the next day for quick back-filling
-    const d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + 1);
-    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    if (next <= todayStr()) setDate(next);
+    // back to a blank form for the next entry
+    setDate(todayStr());
+    setType("Outside");
+    setCity("");
+    setPerson("");
   };
 
   const accent = TYPES[type].color;
@@ -89,7 +89,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         })}
       </div>
 
-      <BigCalendar value={date} onChange={setDate} marks={marks} />
+      <BigCalendar value={date} onChange={pickDate} marks={marks} />
 
       <div className="rounded-2xl border border-line bg-deck p-4">
         <CityInput label={`City on ${fmtDay(date)}`} value={city} onChange={setCity} accent={accent} placeholder="Where did you stay?" />

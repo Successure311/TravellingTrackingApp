@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { useStored } from "../hooks/useStored.js";
+import { useMemo, useState } from "react";
 import CityInput from "./CityInput.jsx";
 import { DateField, TimeField } from "./Pickers.jsx";
 import PersonPicker from "./PersonPicker.jsx";
@@ -13,13 +12,13 @@ const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-b
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
 export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
-  const [mode, setMode] = useStored("wf_t_mode", "Flight");
-  const [source, setSource] = useStored("wf_t_source", "");
-  const [dest, setDest] = useStored("wf_t_dest", "");
-  const [dDate, setDDate] = useStored("wf_t_ddate", todayStr);
-  const [dTime, setDTime] = useStored("wf_t_dtime", "");
-  const [aDate, setADate] = useStored("wf_t_adate", todayStr);
-  const [aTime, setATime] = useStored("wf_t_atime", "");
+  const [mode, setMode] = useState("Flight");
+  const [source, setSource] = useState("");
+  const [dest, setDest] = useState("");
+  const [dDate, setDDate] = useState(todayStr);
+  const [dTime, setDTime] = useState("");
+  const [aDate, setADate] = useState(todayStr);
+  const [aTime, setATime] = useState("");
   const accent = MODES[mode].color;
 
   const mins = useMemo(() => minutesBetween(dDate, dTime, aDate, aTime), [dDate, dTime, aDate, aTime]);
@@ -64,12 +63,15 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     addCustomPlace(row.source);
     addCustomPlace(row.destination);
     notify(`${mode} logged: ${row.source} to ${row.destination} (${fmtDuration(mins)})`);
-    // keep mode and dates so a multi-leg day is quick to enter
-    setSource(row.destination);
+    // back to a blank form for the next entry
+    setMode("Flight");
+    setSource("");
     setDest("");
-    setDDate(aDate);
+    setDDate(todayStr());
     setDTime("");
+    setADate(todayStr());
     setATime("");
+    setPerson("");
   };
 
   const returnTrip = (t) => {

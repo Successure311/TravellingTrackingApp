@@ -29,15 +29,9 @@ export default function App() {
   const [localPeople, setLocalPeople] = useState(getLocalPeople);
   const [hidden, setHidden] = useState(getHiddenPeople);
   const people = [...new Set([...syncedPeople, ...localPeople])].filter((p) => !hidden.includes(p)).sort();
-  const [person, setPerson] = useState(() => {
-    try {
-      return localStorage.getItem("wayfarer_person") || "";
-    } catch {
-      return "";
-    }
-  });
-  // remember the last traveller; fall back to the first known one
-  const activePerson = person || people[0] || "";
+  // nothing is remembered between opens: pick the traveller each time (one traveller is picked for you)
+  const [person, setPerson] = useState("");
+  const activePerson = person || (people.length === 1 ? people[0] : "");
   const removePerson = (p) => {
     const nextHidden = [...new Set([...hidden, p])];
     setHidden(nextHidden);
@@ -58,11 +52,6 @@ export default function App() {
       const next = [...localPeople, p];
       setLocalPeople(next);
       saveLocalPeople(next);
-    }
-    try {
-      localStorage.setItem("wayfarer_person", p);
-    } catch {
-      /* ignore */
     }
   };
 
