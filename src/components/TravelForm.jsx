@@ -95,7 +95,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     notify("Trip removed");
   };
 
-  const recent = trips.filter((t) => t.person === person).sort((a, b) => (b.dDate + b.dTime).localeCompare(a.dDate + a.dTime)).slice(0, 3);
+  const recent = trips.filter((t) => t.person === person).sort((a, b) => (b.dDate + b.dTime).localeCompare(a.dDate + a.dTime)).slice(0, 4);
 
   return (
     <div className="space-y-6">
