@@ -89,6 +89,14 @@ export default function App() {
     }
   }, [tab]);
 
+  // every page opens at its top (also on reload), then you scroll down
+  useEffect(() => {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
+
   const cur = TABS.find((t) => t.id === tab);
 
   return (
