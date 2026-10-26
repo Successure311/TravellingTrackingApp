@@ -1,4 +1,4 @@
-import { MONTHS } from "./time.js";
+import { MONTHS, parseDate, toDateStr } from "./time.js";
 
 const yearOf = (s) => Number(String(s).slice(0, 4));
 const monthOf = (s) => Number(String(s).slice(5, 7)) - 1;
@@ -13,12 +13,16 @@ const empty = (label) => ({ label, trips: 0, mins: 0, home: 0, away: 0, stayMins
 
 const at = (d, t) => new Date(`${d}T${t || "00:00"}:00`);
 
-// How long each logged stay counts for, in minutes (key: "person|date").
-// Default: a full day (24 h). But when a stay is followed by a trip leaving from that same city,
-// the stay is the real time from ARRIVING until that next departure:
-//   arrive Mumbai 26 Oct 21:00, next train leaves Mumbai 27 Oct 06:00  ->  9 h of stay, not 24 h.
+// Stay time, in minutes, per calendar day: [{ person, date, mins }].
+//  - Only nights AWAY from home count. Home days never add to the totals.
+//  - A night away counts a full 24 h by default.
+//  - But when a trip later leaves that same city, the stay is the real time from ARRIVING until that
+//    departure (arrive Mumbai 26 Oct 21:00, train leaves 27 Oct 06:00 = 9 h), and that time is
+//    split over the calendar days it actually covers (3 h on the 26th, 6 h on the 27th).
 export function stayMinutes(travel, stay) {
-  const mins = new Map(stay.map((s) => [`${s.person}|${s.date}`, 1440]));
+  const away = stay.filter((s) => s.type !== "Home");
+  const mins = new Map(away.map((s) => [`${s.person}|${s.date}`, 1440]));
+  const add = (key, m) => mins.set(key, (mins.get(key) || 0) + m);
   const byPerson = new Map();
   travel
     .filter((t) => t.mins > 0 && t.dDate && t.dTime && t.aDate && t.aTime)
@@ -29,23 +33,32 @@ export function stayMinutes(travel, stay) {
       const t = list[i];
       const next = list[i + 1];
       if (next.source !== t.destination) continue;
-      const gap = Math.round((at(next.dDate, next.dTime) - at(t.aDate, t.aTime)) / 60000);
-      if (!(gap > 0)) continue;
-      // the nights logged in that city from the arrival date up to the day before the next departure
-      const nights = stay
-        .filter((s) => s.person === person && s.city === t.destination && s.date >= t.aDate && s.date < next.dDate)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      nights.forEach((s, k) => mins.set(`${s.person}|${s.date}`, k === 0 ? gap : 0));
+      const from = at(t.aDate, t.aTime);
+      const to = at(next.dDate, next.dTime);
+      if (!(to > from)) continue;
+      // the nights away logged in that city from the arrival date up to the day before the next departure
+      const nights = away.filter((s) => s.person === person && s.city === t.destination && s.date >= t.aDate && s.date < next.dDate);
+      if (!nights.length) continue;
+      nights.forEach((s) => mins.set(`${s.person}|${s.date}`, 0));
+      for (let d = parseDate(t.aDate); toDateStr(d) <= next.dDate; d.setDate(d.getDate() + 1)) {
+        const dayStart = new Date(d);
+        const dayEnd = new Date(d);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+        const m = Math.round((Math.min(to, dayEnd) - Math.max(from, dayStart)) / 60000);
+        if (m > 0) add(`${person}|${toDateStr(d)}`, m);
+      }
     }
   }
-  return mins;
+  return [...mins]
+    .map(([k, m]) => ({ person: k.slice(0, k.lastIndexOf("|")), date: k.slice(k.lastIndexOf("|") + 1), mins: m }))
+    .filter((x) => x.mins > 0);
 }
 
 // Everything the Insights tables need for one year (or "all"). A logged stay counts as 1 day.
 export function summarize({ travel, stay, year, month = "all" }) {
   const byDay = year !== "all" && month !== "all";
   const inScope = (d) => (year === "all" || yearOf(d) === year) && (!byDay || monthOf(d) === month);
-  const entryMins = stayMinutes(travel, stay);
+  const stayList = stayMinutes(travel, stay).filter((x) => inScope(x.date));
   const trips = travel.filter((t) => inScope(t.dDate) && t.mins > 0);
   const stays = stay.filter((s) => inScope(s.date));
 
@@ -64,11 +77,10 @@ export function summarize({ travel, stay, year, month = "all" }) {
     r.mins += t.mins;
   });
   stays.forEach((s) => {
-    const r = slot(...keyOf(s.date));
-    if (s.type === "Home") r.home += 1;
-    else r.away += 1;
-    r.stayMins += entryMins.get(`${s.person}|${s.date}`) ?? 1440;
+    if (s.type === "Home") return; // home days are not part of the totals
+    slot(...keyOf(s.date)).away += 1;
   });
+  stayList.forEach((x) => (slot(...keyOf(x.date)).stayMins += x.mins));
   const list = [...rows.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]);
 
   const totals = list.reduce((a, r) => ({ trips: a.trips + r.trips, mins: a.mins + r.mins, home: a.home + r.home, away: a.away + r.away, stayMins: a.stayMins + r.stayMins }), { trips: 0, mins: 0, home: 0, away: 0, stayMins: 0 });
@@ -112,7 +124,7 @@ export function summarize({ travel, stay, year, month = "all" }) {
     p.trips += 1;
     p.mins += t.mins;
   });
-  stays.forEach((s) => (person(s.person).stayMins += entryMins.get(`${s.person}|${s.date}`) ?? 1440));
+  stayList.forEach((x) => (person(x.person).stayMins += x.mins));
   const people = [...pp.values()].sort((a, b) => b.mins + b.stayMins - (a.mins + a.stayMins));
 
   return { rows: list, totals, modes, places, cities, people };
