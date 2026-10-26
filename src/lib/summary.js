@@ -36,8 +36,10 @@ export function stayMinutes(travel, stay) {
       const from = at(t.aDate, t.aTime);
       const to = at(next.dDate, next.dTime);
       if (!(to > from)) continue;
-      // the nights away logged in that city from the arrival date up to the day before the next departure
-      const nights = away.filter((s) => s.person === person && s.city === t.destination && s.date >= t.aDate && s.date < next.dDate);
+      // every night away logged between the arrival date and the day before the next departure.
+      // The real time between the two trips already covers all of them, so none is counted again,
+      // even if one was typed with another name (e.g. the state instead of the city).
+      const nights = away.filter((s) => s.person === person && s.date >= t.aDate && s.date < next.dDate);
       if (!nights.length) continue;
       nights.forEach((s) => mins.set(`${s.person}|${s.date}`, 0));
       for (let d = parseDate(t.aDate); toDateStr(d) <= next.dDate; d.setDate(d.getDate() + 1)) {
