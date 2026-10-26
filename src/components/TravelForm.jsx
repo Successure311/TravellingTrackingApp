@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import CityInput from "./CityInput.jsx";
 import { DateField, TimeField } from "./Pickers.jsx";
 import PersonPicker from "./PersonPicker.jsx";
+import { useConfirm } from "./ConfirmDialog.jsx";
 import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
@@ -12,6 +13,7 @@ const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-b
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
 export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
+  const [confirm, confirmUI] = useConfirm();
   const [mode, setMode] = useState("Flight");
   const [source, setSource] = useState("");
   const [dest, setDest] = useState("");
@@ -85,7 +87,8 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const remove = (t) => {
+  const remove = async (t) => {
+    if (!(await confirm(`Delete the journey ${t.source} to ${t.destination} on ${fmtDay(t.dDate)}?`))) return;
     // not synced yet (local id): just drop the queued save; otherwise delete the sheet row
     if (!/^\d+$/.test(t.id)) dequeue(t.id);
     else enqueue({ key: `del-${t.id}`, kind: "delete", id: t.id, payload: { sheet: "Travel", action: "delete", id: t.id } });
@@ -198,6 +201,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
           </ul>
         </section>
       )}
+      {confirmUI}
     </div>
   );
 }
