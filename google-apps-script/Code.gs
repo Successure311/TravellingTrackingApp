@@ -115,6 +115,12 @@ function readAll_(name) {
   return out;
 }
 
+// Runs by itself whenever someone edits a cell in the sheet: drop the 30 s cache so the app
+// reads the new values straight away.
+function onEdit() {
+  CacheService.getScriptCache().remove(CACHE_KEY);
+}
+
 function doGet(e) {
   try {
     var p = (e && e.parameter) || {};

@@ -7,6 +7,7 @@ import { minutesBetween } from "../lib/time.js";
 import { normPerson } from "../lib/person.js";
 
 const CACHE_KEY = "wayfarer_cache_v1";
+const POLL_MS = 8000; // how often an open app re-reads the sheet
 
 const num = (v) => {
   const n = Number(v);
@@ -19,24 +20,34 @@ const normTime = (v) => {
   return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
 };
 
+// A date typed by hand in the sheet may be "26/10/2026" or "26-10-2026": always turn it into yyyy-MM-dd.
+const normDate = (v) => {
+  const t = String(v ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/); // day first, as in India
+  return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : t;
+};
+
 // Duration is not stored in the sheet: it is worked out from the depart/arrival date and time.
 const normTravel = (r) => {
   const dTime = normTime(r.DepartTime);
   const aTime = normTime(r.ArrivalTime);
+  const dDate = normDate(r.DepartDate);
+  const aDate = normDate(r.ArrivalDate);
   return {
     id: String(r.Id),
     person: normPerson(r.Person) || "Unassigned",
     mode: r.Mode,
     source: canonicalCity(r.Source),
-    dDate: r.DepartDate,
+    dDate,
     dTime,
     destination: canonicalCity(r.Destination),
-    aDate: r.ArrivalDate,
+    aDate,
     aTime,
-    mins: Math.max(0, num(minutesBetween(r.DepartDate, dTime, r.ArrivalDate, aTime))),
+    mins: Math.max(0, num(minutesBetween(dDate, dTime, aDate, aTime))),
   };
 };
-const normStay = (r) => ({ person: normPerson(r.Person) || "Unassigned", date: r.Date, type: r.Type, city: canonicalCity(r.City) });
+const normStay = (r) => ({ person: normPerson(r.Person) || "Unassigned", date: normDate(r.Date), type: r.Type, city: canonicalCity(r.City) });
 
 function loadCache() {
   try {
@@ -53,10 +64,11 @@ export function useData() {
   const [error, setError] = useState(null);
   const [outbox, setOutbox] = useState(getOutbox());
   const inFlight = useRef(false);
+  const lastSig = useRef(cached ? JSON.stringify(cached) : "");
 
   useEffect(() => subscribeOutbox(setOutbox), []);
 
-  const refresh = useCallback(async (fresh = false) => {
+  const refresh = useCallback(async (fresh = false, silent = false) => {
     if (!HAS_BACKEND) {
       setLoading(false);
       setError("Add your Apps Script URL in src/config.js");
@@ -67,15 +79,20 @@ export function useData() {
     try {
       const out = await fetchAll(fresh);
       const data = { travel: (out.travel || []).map(normTravel), stay: (out.stay || []).map(normStay) };
-      setServer(data);
+      const sig = JSON.stringify(data);
       setError(null);
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      } catch {
-        /* ignore */
+      // only touch the screen when something really changed in the sheet
+      if (sig !== lastSig.current) {
+        lastSig.current = sig;
+        setServer(data);
+        try {
+          localStorage.setItem(CACHE_KEY, sig);
+        } catch {
+          /* ignore */
+        }
       }
     } catch (e) {
-      setError(e.message || "Could not load data");
+      if (!silent) setError(e.message || "Could not load data");
     } finally {
       inFlight.current = false;
       setLoading(false);
@@ -84,9 +101,14 @@ export function useData() {
 
   useEffect(() => {
     refresh();
-    const onVis = () => document.visibilityState === "visible" && refresh();
+    const onVis = () => document.visibilityState === "visible" && refresh(true, true);
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    // live updates: edits made directly in the Google Sheet show up within a few seconds
+    const poll = setInterval(() => document.visibilityState === "visible" && refresh(true, true), POLL_MS);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      clearInterval(poll);
+    };
   }, [refresh]);
 
   // when the outbox drains, pull the canonical rows
