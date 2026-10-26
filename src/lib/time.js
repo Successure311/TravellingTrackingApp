@@ -46,3 +46,11 @@ export function splitDuration(totalMins) {
   const t = Math.max(0, Math.round(totalMins));
   return { d: Math.floor(t / 1440), h: Math.floor((t % 1440) / 60), m: t % 60 };
 }
+
+// Every date from a to b (yyyy-MM-dd), both included.
+export function datesBetween(a, b) {
+  const out = [];
+  const end = parseDate(b);
+  for (let d = parseDate(a); d <= end && out.length < 400; d.setDate(d.getDate() + 1)) out.push(toDateStr(d));
+  return out;
+}

@@ -5,10 +5,13 @@ const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 // Large month calendar. `marks` maps yyyy-MM-dd to "Home" | "Outside" for the coloured dots.
-export default function BigCalendar({ value, onChange, marks, min, legend = true }) {
+// With `onRange(start, end)` it selects a range: tap a start date, then an end date.
+export default function BigCalendar({ value, onChange, marks, min, legend = true, end, onRange }) {
   const sel = parseDate(value || todayStr());
   const [view, setView] = useState({ y: sel.getFullYear(), m: sel.getMonth() });
   const today = todayStr();
+  // true once the user has tapped a start day, so the NEXT tap extends it into a range
+  const [anchored, setAnchored] = useState(false);
 
   const first = new Date(view.y, view.m, 1);
   const lead = first.getDay();
@@ -24,7 +27,19 @@ export default function BigCalendar({ value, onChange, marks, min, legend = true
   const jumpToday = () => {
     const t = new Date();
     setView({ y: t.getFullYear(), m: t.getMonth() });
-    onChange(todayStr());
+    pick(todayStr());
+  };
+
+  const pick = (ds) => {
+    if (!onRange) return onChange(ds);
+    const single = !end || end === value;
+    if (anchored && single && ds !== value) {
+      ds > value ? onRange(value, ds) : onRange(ds, value);
+      setAnchored(false);
+    } else {
+      onRange(ds, ds); // first tap, a range already set, or the same day again: start from this day
+      setAnchored(true);
+    }
   };
 
   return (
@@ -52,7 +67,8 @@ export default function BigCalendar({ value, onChange, marks, min, legend = true
         {cells.map((day, i) => {
           if (!day) return <span key={i} />;
           const ds = toDateStr(new Date(view.y, view.m, day));
-          const isSel = ds === value;
+          const isSel = ds === value || (!!end && ds === end);
+          const inRange = !!end && ds > value && ds < end;
           const isToday = ds === today;
           const mark = marks[ds];
           const blocked = min && ds < min;
@@ -62,10 +78,10 @@ export default function BigCalendar({ value, onChange, marks, min, legend = true
               key={i}
               type="button"
               disabled={blocked}
-              onClick={() => onChange(ds)}
+              onClick={() => pick(ds)}
               className="relative flex aspect-square flex-col items-center justify-center rounded-2xl text-lg font-medium transition active:scale-90 disabled:opacity-25"
               style={{
-                background: isSel ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : "transparent",
+                background: isSel ? "linear-gradient(135deg, var(--color-dusk), var(--color-dawn))" : inRange ? "rgba(255,196,107,.2)" : "transparent",
                 color: isSel ? "#0a1224" : undefined,
                 border: isToday && !isSel ? "1.5px solid var(--color-sky)" : "1.5px solid transparent",
                 fontWeight: isSel ? 700 : 500,

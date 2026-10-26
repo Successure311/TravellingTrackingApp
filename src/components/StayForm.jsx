@@ -6,7 +6,7 @@ import { HomeIcon, TentIcon, TrashIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
 import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
-import { fmtDay, todayStr } from "../lib/time.js";
+import { datesBetween, fmtDay, todayStr } from "../lib/time.js";
 
 const TYPES = {
   Home: { label: "Home", color: "#fb923c", Icon: HomeIcon, sub: "Slept at home" },
@@ -15,6 +15,8 @@ const TYPES = {
 
 export default function StayForm({ stays, people, person, setPerson, onRemovePerson, notify }) {
   const [date, setDate] = useState(todayStr());
+  const [endDate, setEndDate] = useState(todayStr());
+  const [calKey, setCalKey] = useState(0); // remounts the calendar after each save so it starts fresh
   const [type, setType] = useState("Outside");
   const [city, setCity] = useState("");
 
@@ -26,18 +28,34 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     return homes[0]?.city || "";
   }, [mine]);
 
-  // tapping a day that already has an entry shows it, so it can be edited
-  const pickDate = (d) => {
-    setDate(d);
-    const existing = byDate[d];
-    if (existing) {
-      setType(existing.type === "Home" ? "Home" : "Outside");
-      setCity(existing.city);
+  const dates = useMemo(() => datesBetween(date, endDate), [date, endDate]);
+  const isRange = dates.length > 1;
+  const existingDays = dates.filter((d) => byDate[d]);
+  const existing = existingDays.length > 0;
+
+  // tap one day: a day that already has an entry shows it, so it can be edited, otherwise blank.
+  // tap a second day: the whole range is selected and what you typed is kept.
+  const pickRange = (a, b) => {
+    setDate(a);
+    setEndDate(b);
+    if (a !== b) return;
+    const found = byDate[a];
+    if (found) {
+      setType(found.type === "Home" ? "Home" : "Outside");
+      setCity(found.city);
     } else {
-      // a day with no entry yet: start blank
       setType("Outside");
       setCity("");
     }
+  };
+
+  const resetForm = () => {
+    setDate(todayStr());
+    setEndDate(todayStr());
+    setType("Outside");
+    setCity("");
+    setPerson("");
+    setCalKey((k) => k + 1);
   };
 
   const pickType = (t) => {
@@ -50,38 +68,38 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
-    const row = { person, date, type, city: canonicalCity(city) };
-    enqueue({
-      key: `stay-${date}-${Date.now()}`,
-      kind: "stay",
-      row,
-      payload: { sheet: "Stay", action: "upsert", key_columns: ["Person", "Date"], row: { Person: person, Date: date, Type: type, City: row.city } },
-    });
-    pushRecent(row.city);
-    addCustomPlace(row.city);
-    notify(`${fmtDay(date)}: ${type === "Home" ? "Home" : "Outside"}, ${row.city}`);
-    // back to a blank form for the next entry
-    setDate(todayStr());
-    setType("Outside");
-    setCity("");
-    setPerson("");
+    if (isRange && existingDays.length && !window.confirm(`${existingDays.length} of these ${dates.length} days already have a stay.\n\nReplace them?`)) return;
+    const cityName = canonicalCity(city);
+    // one entry per day in the range
+    dates.forEach((d, i) =>
+      enqueue({
+        key: `stay-${d}-${Date.now()}-${i}`,
+        kind: "stay",
+        row: { person, date: d, type, city: cityName },
+        payload: { sheet: "Stay", action: "upsert", key_columns: ["Person", "Date"], row: { Person: person, Date: d, Type: type, City: cityName } },
+      })
+    );
+    pushRecent(cityName);
+    addCustomPlace(cityName);
+    const when = isRange ? `${fmtDay(date)} to ${fmtDay(endDate)}` : fmtDay(date);
+    notify(`${when}: ${type === "Home" ? "Home" : "Outside"}, ${cityName}${isRange ? ` (${dates.length} days)` : ""}`);
+    resetForm();
   };
 
-  const existing = byDate[date];
-
   const remove = () => {
-    if (!existing || !window.confirm(`Delete the stay on ${fmtDay(date)} (${existing.city})?`)) return;
-    enqueue({
-      key: `stay-del-${person}-${date}-${Date.now()}`,
-      kind: "stayDelete",
-      row: { person, date },
-      payload: { sheet: "Stay", action: "delete", key_columns: ["Person", "Date"], row: { Person: person, Date: date } },
-    });
-    notify(`Stay on ${fmtDay(date)} deleted`);
-    setDate(todayStr());
-    setType("Outside");
-    setCity("");
-    setPerson("");
+    if (!existing) return;
+    const ask = existingDays.length === 1 ? `Delete the stay on ${fmtDay(existingDays[0])} (${byDate[existingDays[0]].city})?` : `Delete ${existingDays.length} stays between ${fmtDay(date)} and ${fmtDay(endDate)}?`;
+    if (!window.confirm(ask)) return;
+    existingDays.forEach((d, i) =>
+      enqueue({
+        key: `stay-del-${person}-${d}-${Date.now()}-${i}`,
+        kind: "stayDelete",
+        row: { person, date: d },
+        payload: { sheet: "Stay", action: "delete", key_columns: ["Person", "Date"], row: { Person: person, Date: d } },
+      })
+    );
+    notify(existingDays.length === 1 ? `Stay on ${fmtDay(existingDays[0])} deleted` : `${existingDays.length} stays deleted`);
+    resetForm();
   };
 
   const accent = TYPES[type].color;
@@ -110,11 +128,11 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         })}
       </div>
 
-      <BigCalendar value={date} onChange={pickDate} marks={marks} />
+      <BigCalendar key={calKey} value={date} end={endDate} onRange={pickRange} marks={marks} />
 
       <div className="rounded-2xl border border-line bg-deck p-4">
         <CityInput
-          label={`City on ${fmtDay(date)}`}
+          label={isRange ? `City · ${fmtDay(date)} to ${fmtDay(endDate)} · ${dates.length} days` : `City on ${fmtDay(date)}`}
           value={city}
           onChange={setCity}
           accent={accent}
@@ -135,7 +153,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
         className="display h-14 w-full rounded-2xl text-lg font-bold text-night transition active:scale-[0.98] disabled:opacity-35"
         style={{ background: `linear-gradient(90deg, ${accent}, #ffc46b)` }}
       >
-        {existing ? "Update stay" : "Save stay"}
+        {isRange ? `Save ${dates.length} days` : existing ? "Update stay" : "Save stay"}
       </button>
     </form>
   );
