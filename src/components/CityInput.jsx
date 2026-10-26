@@ -3,7 +3,7 @@ import { searchCities } from "../data/indianCities.js";
 import { getRecent } from "../lib/recent.js";
 import { PinIcon } from "./Icons.jsx";
 
-export default function CityInput({ label, value, onChange, accent = "#38bdf8", placeholder = "Search city..." }) {
+export default function CityInput({ label, value, onChange, accent = "#38bdf8", placeholder = "Search city...", trailing = null }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const wrap = useRef(null);
@@ -62,6 +62,7 @@ export default function CityInput({ label, value, onChange, accent = "#38bdf8", 
             ×
           </button>
         )}
+        {trailing}
       </div>
 
       {open && (results.length > 0 || showCustom || recent.length > 0) && (

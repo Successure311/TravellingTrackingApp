@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
 import PersonPicker from "./PersonPicker.jsx";
-import { HomeIcon, TentIcon } from "./Icons.jsx";
+import { HomeIcon, TentIcon, TrashIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
 import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
@@ -113,7 +113,20 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
       <BigCalendar value={date} onChange={pickDate} marks={marks} />
 
       <div className="rounded-2xl border border-line bg-deck p-4">
-        <CityInput label={`City on ${fmtDay(date)}`} value={city} onChange={setCity} accent={accent} placeholder="Where did you stay?" />
+        <CityInput
+          label={`City on ${fmtDay(date)}`}
+          value={city}
+          onChange={setCity}
+          accent={accent}
+          placeholder="Where did you stay?"
+          trailing={
+            existing && (
+              <button type="button" onClick={remove} aria-label="Delete this stay" className="-mr-1 border-l border-line pl-2 text-mist active:text-rose-400">
+                <TrashIcon width={20} height={20} />
+              </button>
+            )
+          }
+        />
       </div>
 
       <button
@@ -124,12 +137,6 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
       >
         {existing ? "Update stay" : "Save stay"}
       </button>
-
-      {existing && (
-        <button type="button" onClick={remove} className="h-12 w-full rounded-2xl border border-rose-400/50 text-base font-semibold text-rose-300 transition active:scale-[0.98] active:bg-rose-500/10">
-          Delete this stay
-        </button>
-      )}
     </form>
   );
 }
