@@ -12,8 +12,9 @@ export function yearsOf(travel, stay) {
 const empty = (label) => ({ label, trips: 0, mins: 0, home: 0, away: 0 });
 
 // Everything the Insights tables need for one year (or "all"). A logged stay counts as 1 day.
-export function summarize({ travel, stay, year }) {
-  const inScope = (d) => year === "all" || yearOf(d) === year;
+export function summarize({ travel, stay, year, month = "all" }) {
+  const byDay = year !== "all" && month !== "all";
+  const inScope = (d) => (year === "all" || yearOf(d) === year) && (!byDay || monthOf(d) === month);
   const trips = travel.filter((t) => inScope(t.dDate) && t.mins > 0);
   const stays = stay.filter((s) => inScope(s.date));
 
@@ -23,7 +24,9 @@ export function summarize({ travel, stay, year }) {
     if (!rows.has(key)) rows.set(key, empty(label));
     return rows.get(key);
   };
-  const keyOf = (d) => (year === "all" ? [yearOf(d), String(yearOf(d))] : [monthOf(d), MONTHS[monthOf(d)]]);
+  const dayOf = (d) => Number(String(d).slice(8, 10));
+  const keyOf = (d) =>
+    year === "all" ? [yearOf(d), String(yearOf(d))] : byDay ? [dayOf(d), `${dayOf(d)} ${MONTHS[month]}`] : [monthOf(d), MONTHS[monthOf(d)]];
   trips.forEach((t) => {
     const r = slot(...keyOf(t.dDate));
     r.trips += 1;

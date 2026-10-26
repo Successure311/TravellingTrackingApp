@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import PersonPicker, { Avatar } from "./PersonPicker.jsx";
 import { MODES } from "./Icons.jsx";
 import { summarize, yearsOf } from "../lib/summary.js";
-import { fmtDuration, splitDuration } from "../lib/time.js";
+import { fmtDuration, MONTHS, splitDuration } from "../lib/time.js";
 
 const TH = "py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-mist first:text-left";
 const TD = "mono py-2.5 text-right text-[13px] first:text-left";
@@ -33,11 +33,13 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
 
   const years = useMemo(() => yearsOf(travel, stay), [travel, stay]);
   const [year, setYear] = useState(null);
+  const [month, setMonth] = useState("all");
   const thisYear = new Date().getFullYear();
   const activeYear = year === "all" || years.includes(year) ? year : years[0] ?? thisYear;
 
-  const s = useMemo(() => summarize({ travel, stay, year: activeYear }), [travel, stay, activeYear]);
-  const everyone = useMemo(() => summarize({ travel: allTravel, stay: allStay, year: activeYear }), [allTravel, allStay, activeYear]);
+  const activeMonth = activeYear === "all" ? "all" : month;
+  const s = useMemo(() => summarize({ travel, stay, year: activeYear, month: activeMonth }), [travel, stay, activeYear, activeMonth]);
+  const everyone = useMemo(() => summarize({ travel: allTravel, stay: allStay, year: activeYear, month: activeMonth }), [allTravel, allStay, activeYear, activeMonth]);
 
   if (loading) {
     return (
@@ -55,9 +57,9 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
 
   return (
     <div className="space-y-4">
-      {/* filters: traveller and year */}
-      <div className="grid grid-cols-[1.5fr_1fr] gap-3">
-        <PersonPicker people={people} value={effectiveWho} onChange={setWho} allowAll canAdd={false} />
+      {/* filters: traveller, year, month */}
+      <PersonPicker people={people} value={effectiveWho} onChange={setWho} allowAll canAdd={false} />
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist">Year</span>
           <select
@@ -65,10 +67,26 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
             onChange={(e) => setYear(e.target.value === "all" ? "all" : Number(e.target.value))}
             className="display h-14 w-full rounded-xl border border-line bg-night/60 px-3 text-lg font-bold text-white outline-none focus:border-sky"
           >
-            <option value="all">All</option>
+            <option value="all">All years</option>
             {[...new Set([...years, thisYear])].sort((a, b) => b - a).map((y) => (
               <option key={y} value={y}>
                 {y}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist">Month</span>
+          <select
+            value={activeMonth}
+            disabled={activeYear === "all"}
+            onChange={(e) => setMonth(e.target.value === "all" ? "all" : Number(e.target.value))}
+            className="display h-14 w-full rounded-xl border border-line bg-night/60 px-3 text-lg font-bold text-white outline-none focus:border-sky disabled:opacity-40"
+          >
+            <option value="all">All months</option>
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i}>
+                {m}
               </option>
             ))}
           </select>
@@ -99,11 +117,11 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
       ) : (
         <>
           {/* main table */}
-          <Card title={activeYear === "all" ? "By year" : `By month · ${activeYear}`}>
+          <Card title={activeYear === "all" ? "By year" : activeMonth === "all" ? `By month · ${activeYear}` : `By day · ${MONTHS[activeMonth]} ${activeYear}`}>
             <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-line">
-                  <th className={`${TH} w-[17%]`}>{activeYear === "all" ? "Year" : "Month"}</th>
+                  <th className={`${TH} w-[17%]`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
                   <th className={`${TH} w-[13%]`}>Trips</th>
                   <th className={`${TH} w-[20%]`}>Travel</th>
                   <th className={`${TH} w-[13%]`} style={{ color: "#fb923c" }}>Home</th>
