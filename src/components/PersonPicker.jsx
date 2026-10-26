@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Sheet } from "./Pickers.jsx";
+import { useConfirm } from "./ConfirmDialog.jsx";
 import { initial, normPerson, personColor } from "../lib/person.js";
 
 export function Avatar({ name, size = 28 }) {
@@ -17,6 +18,7 @@ export function Avatar({ name, size = 28 }) {
 // Who is travelling: a dropdown of every added name, with "+ Add new traveller" at the bottom.
 export default function PersonPicker({ people, value, onChange, label = "Traveller", allowAll = false, canAdd = true, onRemove }) {
   const [open, setOpen] = useState(false);
+  const [confirm, confirmUI] = useConfirm();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const wrap = useRef(null);
@@ -111,11 +113,11 @@ export default function PersonPicker({ people, value, onChange, label = "Travell
                 <span
                   role="button"
                   aria-label={`Remove ${p}`}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    if (window.confirm(`Remove "${p}" from the list?
+                    if (await confirm(`Remove "${p}" from the list?
 
-Their saved trips and stays stay safe in your Google Sheet.`)) {
+Their saved trips and stays stay safe in your Google Sheet.`, { confirmLabel: "Remove" })) {
                       onRemove(p);
                       setOpen(false);
                     }
@@ -168,6 +170,7 @@ Their saved trips and stays stay safe in your Google Sheet.`)) {
           </div>
         </Sheet>
       )}
+      {confirmUI}
     </div>
   );
 }

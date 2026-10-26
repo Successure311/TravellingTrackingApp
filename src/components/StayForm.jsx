@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import BigCalendar from "./BigCalendar.jsx";
 import CityInput from "./CityInput.jsx";
 import PersonPicker from "./PersonPicker.jsx";
+import { useConfirm } from "./ConfirmDialog.jsx";
 import { HomeIcon, TentIcon, TrashIcon } from "./Icons.jsx";
 import { enqueue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
@@ -16,6 +17,7 @@ const TYPES = {
 export default function StayForm({ stays, people, person, setPerson, onRemovePerson, notify }) {
   const [date, setDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
+  const [confirm, confirmUI] = useConfirm();
   const [rangeMode, setRangeMode] = useState(false); // off: tapping a day picks that one day (as always)
   const [calKey, setCalKey] = useState(0); // remounts the calendar after each save so it starts fresh
   const [type, setType] = useState("Outside");
@@ -72,10 +74,10 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
 
   const ready = person && date && city.trim();
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!ready) return;
-    if (isRange && existingDays.length && !window.confirm(`${existingDays.length} of these ${dates.length} days already have a stay.\n\nReplace them?`)) return;
+    if (isRange && existingDays.length && !(await confirm(`${existingDays.length} of these ${dates.length} days already have a stay. Replace them?`, { confirmLabel: "Replace", danger: false }))) return;
     const cityName = canonicalCity(city);
     // one entry per day in the range
     dates.forEach((d, i) =>
@@ -93,10 +95,10 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
     resetForm();
   };
 
-  const remove = () => {
+  const remove = async () => {
     if (!existing) return;
     const ask = existingDays.length === 1 ? `Delete the stay on ${fmtDay(existingDays[0])} (${byDate[existingDays[0]].city})?` : `Delete ${existingDays.length} stays between ${fmtDay(date)} and ${fmtDay(endDate)}?`;
-    if (!window.confirm(ask)) return;
+    if (!(await confirm(ask))) return;
     existingDays.forEach((d, i) =>
       enqueue({
         key: `stay-del-${person}-${d}-${Date.now()}-${i}`,
@@ -181,6 +183,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
       >
         {isRange ? `Save ${dates.length} days` : existing ? "Update stay" : "Save stay"}
       </button>
+      {confirmUI}
     </form>
   );
 }
