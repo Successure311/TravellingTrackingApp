@@ -100,13 +100,21 @@ export function useData() {
   }, []);
 
   useEffect(() => {
-    refresh();
-    const onVis = () => document.visibilityState === "visible" && refresh(true, true);
-    document.addEventListener("visibilitychange", onVis);
-    // live updates: edits made directly in the Google Sheet show up within a few seconds
-    const poll = setInterval(() => document.visibilityState === "visible" && refresh(true, true), POLL_MS);
+    // opening the app, coming back to it, or regaining signal: read the sheet fresh right away
+    const now = () => document.visibilityState === "visible" && refresh(true, true);
+    refresh(true);
+    document.addEventListener("visibilitychange", now);
+    window.addEventListener("focus", now);
+    window.addEventListener("online", now);
+    window.addEventListener("pageshow", now);
+    // while open: keep checking. Every save and every sheet edit clears the server's 30 s copy, so
+    // this light check always sees the latest and many devices do not overload the script.
+    const poll = setInterval(() => document.visibilityState === "visible" && refresh(false, true), POLL_MS);
     return () => {
-      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("visibilitychange", now);
+      window.removeEventListener("focus", now);
+      window.removeEventListener("online", now);
+      window.removeEventListener("pageshow", now);
       clearInterval(poll);
     };
   }, [refresh]);
