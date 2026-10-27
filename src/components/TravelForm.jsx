@@ -15,7 +15,7 @@ const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] te
 export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
   const [confirm, confirmUI] = useConfirm();
   const [level, setLevel] = useState(0); // 0: latest 4; 1: + this month and last month; 2: + the month before; ...
-  const [mode, setMode] = useState("Flight");
+  const [mode, setMode] = useState("Train");
   const [source, setSource] = useState("");
   const [dest, setDest] = useState("");
   const [dDate, setDDate] = useState(todayStr);
@@ -81,7 +81,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     notify(`${mode} ${editing ? "updated" : "logged"}: ${row.source} to ${row.destination} (${fmtDuration(mins)})`);
     setEditing(null);
     // back to a blank form for the next entry
-    setMode("Flight");
+    setMode("Train");
     setSource("");
     setDest("");
     setDDate(todayStr());
@@ -107,7 +107,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
 
   const cancelEdit = () => {
     setEditing(null);
-    setMode("Flight");
+    setMode("Train");
     setSource("");
     setDest("");
     setDDate(todayStr());
