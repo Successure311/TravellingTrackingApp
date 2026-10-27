@@ -97,7 +97,7 @@ export const Logo = ({ size = 36 }) => (
 );
 
 export const MODES = {
-  Flight: { label: "Flight", color: "#38bdf8", Icon: PlaneIcon },
   Train: { label: "Train", color: "#fbbf24", Icon: TrainIcon },
+  Flight: { label: "Flight", color: "#38bdf8", Icon: PlaneIcon },
   Car: { label: "Car", color: "#34d399", Icon: CarIcon },
 };

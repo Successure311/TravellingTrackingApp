@@ -89,7 +89,7 @@ export function summarize({ travel, stay, year, month = "all" }) {
 
   const totals = list.reduce((a, r) => ({ trips: a.trips + r.trips, mins: a.mins + r.mins, home: a.home + r.home, away: a.away + r.away, stayMins: a.stayMins + r.stayMins }), { trips: 0, mins: 0, home: 0, away: 0, stayMins: 0 });
 
-  const modes = ["Flight", "Train", "Car"].map((mode) => {
+  const modes = ["Train", "Flight", "Car"].map((mode) => {
     const ts = trips.filter((t) => t.mode === mode);
     return { mode, trips: ts.length, mins: ts.reduce((a, t) => a + t.mins, 0) };
   });
