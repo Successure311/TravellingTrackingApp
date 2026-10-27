@@ -9,7 +9,7 @@ export function yearsOf(travel, stay) {
   return [...ys].sort((a, b) => b - a);
 }
 
-const empty = (label) => ({ label, trips: 0, mins: 0, home: 0, away: 0, stayMins: 0 });
+const empty = (label) => ({ label, trips: 0, mins: 0, home: 0, away: 0, stayMins: 0, cities: [] });
 
 const at = (d, t) => new Date(`${d}T${t || "00:00"}:00`);
 
@@ -80,7 +80,9 @@ export function summarize({ travel, stay, year, month = "all" }) {
   });
   stays.forEach((s) => {
     if (s.type === "Home") return; // home days are not part of the totals
-    slot(...keyOf(s.date)).away += 1;
+    const r = slot(...keyOf(s.date));
+    r.away += 1;
+    if (byDay && s.city && !r.cities.includes(s.city)) r.cities.push(s.city);
   });
   stayList.forEach((x) => (slot(...keyOf(x.date)).stayMins += x.mins));
   const list = [...rows.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]);

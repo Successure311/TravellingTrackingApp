@@ -112,7 +112,10 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                     <td className={`${TD} font-semibold`}>{r.label}</td>
                     <td className={TD}>{num(r.trips)}</td>
                     <td className={TD}>{r.mins ? fmtDuration(r.mins) : "–"}</td>
-                    <td className={TD}>{dh(r.stayMins)}</td>
+                    <td className={TD}>
+                      {dh(r.stayMins)}
+                      {r.cities.length > 0 && <span className="block truncate font-sans text-[11px] text-mist">({r.cities.join(", ")})</span>}
+                    </td>
                     <td className={`${TD} font-bold text-sky`}>{dh(r.mins + r.stayMins)}</td>
                   </tr>
                 ))}
