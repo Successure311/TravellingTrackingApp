@@ -61,8 +61,7 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
       setType(found.type === "Home" ? "Home" : "Outside");
       setCity(found.city);
     } else {
-      setType("Outside");
-      setCity("");
+      setCity(""); // a day with no entry: blank city, but keep the Home / Outside you chose
     }
   };
 
