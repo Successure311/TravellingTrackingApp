@@ -52,6 +52,8 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
     );
   }
 
+  const byDayView = activeYear !== "all" && activeMonth !== "all";
+
   return (
     <div className="space-y-4">
       {/* filters: traveller, year, month */}
@@ -99,11 +101,11 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
             <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-line">
-                  <th className={`${TH} w-[20%]`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
-                  <th className={`${TH} w-[14%]`}>Trips</th>
-                  <th className={`${TH} w-[22%]`}>Travel</th>
-                  <th className={`${TH} w-[22%]`}>Stay</th>
-                  <th className={`${TH} w-[22%]`}>Total</th>
+                  <th className={`${TH} ${byDayView ? "w-[15%]" : "w-[20%]"}`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
+                  <th className={`${TH} ${byDayView ? "w-[11%]" : "w-[14%]"}`}>Trips</th>
+                  <th className={`${TH} ${byDayView ? "w-[20%]" : "w-[22%]"}`}>Travel</th>
+                  <th className={`${TH} ${byDayView ? "w-[38%]" : "w-[22%]"}`}>Stay</th>
+                  <th className={`${TH} ${byDayView ? "w-[16%]" : "w-[22%]"}`}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -114,7 +116,7 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                     <td className={TD}>{r.mins ? fmtDuration(r.mins) : "–"}</td>
                     <td className={TD}>
                       {dh(r.stayMins)}
-                      {r.cities.length > 0 && <span className="block truncate font-sans text-[11px] text-mist">({r.cities.join(", ")})</span>}
+                      {r.cities.length > 0 && <span className="ml-1 font-sans text-[11px] text-mist">({r.cities.join(", ")})</span>}
                     </td>
                     <td className={`${TD} font-bold text-sky`}>{dh(r.mins + r.stayMins)}</td>
                   </tr>
