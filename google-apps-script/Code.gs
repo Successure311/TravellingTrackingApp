@@ -15,15 +15,17 @@
 
 var SCHEMA = {
   Travel: ['Id', 'Person', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime'],
-  Stay: ['Person', 'Date', 'Type', 'City']
+  Stay: ['Person', 'Date', 'Type', 'City'],
+  People: ['Name'] // every traveller, so a new name shows on all devices before its first entry
 };
 // columns kept as plain text so Sheets never turns "2026-10-24" or "09:30" into a date/serial
 var TEXT_COLS = {
   Travel: ['DepartDate', 'DepartTime', 'ArrivalDate', 'ArrivalTime'],
-  Stay: ['Date']
+  Stay: ['Date'],
+  People: []
 };
 var TIME_COLS = ['DepartTime', 'ArrivalTime'];
-var CACHE_KEY = 'all_v3';
+var CACHE_KEY = 'all_v4';
 
 function setup() {
   // also puts the existing rows in date order
@@ -130,7 +132,7 @@ function doGet(e) {
       var hit = cache.get(CACHE_KEY);
       if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
     }
-    var body = JSON.stringify({ travel: readAll_('Travel'), stay: readAll_('Stay') });
+    var body = JSON.stringify({ travel: readAll_('Travel'), stay: readAll_('Stay'), people: readAll_('People') });
     if (body.length < 90000) cache.put(CACHE_KEY, body, 30);
     return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -184,7 +186,7 @@ function sortSheet_(sh, name) {
   var last = sh.getLastRow();
   if (last < 3) return;
   var cols = SCHEMA[name];
-  var by = name === 'Travel' ? ['DepartDate', 'DepartTime', 'Id'] : ['Date', 'Person'];
+  var by = name === 'Travel' ? ['DepartDate', 'DepartTime', 'Id'] : name === 'Stay' ? ['Date', 'Person'] : ['Name'];
   var spec = by.map(function (c) { return { column: cols.indexOf(c) + 1, ascending: true }; });
   sh.getRange(2, 1, last - 1, cols.length).sort(spec);
 }

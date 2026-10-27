@@ -4,6 +4,7 @@ import StayForm from "./components/StayForm.jsx";
 import Insights from "./components/Insights.jsx";
 import { BedIcon, ChartIcon, CloudShape, Logo, TicketIcon } from "./components/Icons.jsx";
 import { useData } from "./hooks/useData.js";
+import { enqueue } from "./lib/outbox.js";
 import { getHiddenPeople, getLocalPeople, saveHiddenPeople, saveLocalPeople } from "./lib/person.js";
 
 
@@ -62,6 +63,8 @@ export default function App() {
       const next = [...localPeople, p];
       setLocalPeople(next);
       saveLocalPeople(next);
+      // save the new name in the Sheet so every device shows it, even before a first entry
+      enqueue({ key: `person-${p}`, kind: "person", row: { name: p }, payload: { sheet: "People", action: "upsert", key_column: "Name", row: { Name: p } } });
     }
   };
 

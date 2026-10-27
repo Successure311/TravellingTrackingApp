@@ -59,7 +59,7 @@ function loadCache() {
 
 export function useData() {
   const cached = useRef(loadCache()).current;
-  const [server, setServer] = useState(cached || { travel: [], stay: [] });
+  const [server, setServer] = useState(cached ? { people: [], ...cached } : { travel: [], stay: [], people: [] });
   const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState(null);
   const [outbox, setOutbox] = useState(getOutbox());
@@ -78,7 +78,7 @@ export function useData() {
     inFlight.current = true;
     try {
       const out = await fetchAll(fresh);
-      const data = { travel: (out.travel || []).map(normTravel), stay: (out.stay || []).map(normStay) };
+      const data = { travel: (out.travel || []).map(normTravel), stay: (out.stay || []).map(normStay), people: (out.people || []).map((r) => normPerson(r.Name)).filter(Boolean) };
       const sig = JSON.stringify(data);
       setError(null);
       // only touch the screen when something really changed in the sheet
@@ -139,9 +139,13 @@ export function useData() {
     return { travel: [...t.values()], stay: [...s.values()] };
   }, [server, outbox]);
 
+  // everyone: names saved in the People tab, names on trips and stays, and names just added here
   const people = useMemo(
-    () => [...new Set([...travel.map((t) => t.person), ...stay.map((s) => s.person)])].filter((p) => p !== "Unassigned").sort(),
-    [travel, stay]
+    () =>
+      [...new Set([...server.people, ...outbox.filter((o) => o.kind === "person").map((o) => o.row.name), ...travel.map((t) => t.person), ...stay.map((s) => s.person)])]
+        .filter((p) => p !== "Unassigned")
+        .sort(),
+    [server, outbox, travel, stay]
   );
 
   useEffect(() => {
