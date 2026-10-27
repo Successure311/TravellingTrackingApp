@@ -12,7 +12,7 @@ const dh = (mins) => {
   if (!mins) return "–";
   const { d, h, m } = splitDuration(mins);
   if (!d && !h) return `${m}m`;
-  return d ? `${d}d ${h}h` : `${h}h`;
+  return d ? (h ? `${d}d ${h}h` : `${d}d`) : `${h}h`;
 };
 const num = (n) => (n ? n : "–");
 
