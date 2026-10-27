@@ -4,8 +4,8 @@ import { MODES } from "./Icons.jsx";
 import { summarize, yearsOf } from "../lib/summary.js";
 import { fmtDuration, MONTHS, splitDuration } from "../lib/time.js";
 
-const TH = "py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-mist first:text-left";
-const TD = "mono py-2.5 text-right text-[13px] first:text-left";
+const TH = "py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-mist first:pl-0 first:text-left pl-3";
+const TD = "mono py-2.5 text-right text-[13px] first:pl-0 first:text-left pl-3";
 
 // travel time + stay days as "2d 3h" (24 h rolls into a new day)
 const dh = (mins) => {
@@ -98,14 +98,14 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
         <>
           {/* main table */}
           <Card title={activeYear === "all" ? "By year" : activeMonth === "all" ? `By month · ${activeYear}` : `By day · ${MONTHS[activeMonth]} ${activeYear}`}>
-            <table className="w-full table-fixed border-collapse">
+            <table className="w-full border-collapse whitespace-nowrap">
               <thead>
                 <tr className="border-b border-line">
-                  <th className={`${TH} ${byDayView ? "w-[15%]" : "w-[20%]"}`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
-                  <th className={`${TH} ${byDayView ? "w-[11%]" : "w-[14%]"}`}>Trips</th>
-                  <th className={`${TH} ${byDayView ? "w-[20%]" : "w-[22%]"}`}>Travel</th>
-                  <th className={`${TH} ${byDayView ? "w-[38%]" : "w-[22%]"}`}>Stay</th>
-                  <th className={`${TH} ${byDayView ? "w-[16%]" : "w-[22%]"}`}>Total</th>
+                  <th className={`${TH}`}>{activeYear === "all" ? "Year" : activeMonth === "all" ? "Month" : "Day"}</th>
+                  <th className={`${TH}`}>Trips</th>
+                  <th className={`${TH}`}>Travel</th>
+                  <th className={`${TH}`}>Stay</th>
+                  <th className={`${TH}`}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -114,7 +114,7 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                     <td className={`${TD} font-semibold`}>{r.label}</td>
                     <td className={TD}>{num(r.trips)}</td>
                     <td className={TD}>{r.mins ? fmtDuration(r.mins) : "–"}</td>
-                    <td className={TD}>
+                    <td className={`${TD} pl-3`}>
                       {dh(r.stayMins)}
                       {r.cities.length > 0 && <span className="ml-1 font-sans text-[11px] text-mist">({r.cities.join(", ")})</span>}
                     </td>
