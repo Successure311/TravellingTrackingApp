@@ -142,12 +142,12 @@ export default function StayForm({ stays, people, person, setPerson, onRemovePer
               key={key}
               type="button"
               onClick={() => pickType(key)}
-              className="rounded-2xl border p-4 text-left transition active:scale-95"
+              className="rounded-2xl border px-4 py-2.5 text-left transition active:scale-95"
               style={{ borderColor: on ? t.color : "var(--color-line)", background: on ? `${t.color}20` : "var(--color-deck)", color: on ? t.color : undefined }}
             >
-              <t.Icon width={30} height={30} />
-              <p className="display mt-2 text-lg font-bold">{t.label}</p>
-              <p className="text-xs text-mist">{t.sub}</p>
+              <t.Icon width={24} height={24} />
+              <p className="display mt-1 text-base font-bold leading-tight">{t.label}</p>
+              <p className="text-xs leading-tight text-mist">{t.sub}</p>
             </button>
           );
         })}
