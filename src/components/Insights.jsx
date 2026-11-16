@@ -28,8 +28,14 @@ function Card({ title, children }) {
 export default function Insights({ travel: allTravel, stay: allStay, people, person, loading }) {
   const [who, setWho] = useState(person || "all");
   const effectiveWho = who === "all" || people.includes(who) || !people.length ? who : "all";
+  const [kind, setKind] = useState("all"); // all | Business | Personal
   const pick = (list) => (effectiveWho === "all" ? list : list.filter((x) => x.person === effectiveWho));
-  const travel = useMemo(() => pick(allTravel), [allTravel, effectiveWho]);
+  const travel = useMemo(() => pick(allTravel).filter((t) => kind === "all" || t.type === kind), [allTravel, effectiveWho, kind]);
+  const byType = useMemo(() => {
+    const o = { Personal: { n: 0, mins: 0 }, Business: { n: 0, mins: 0 } };
+    for (const t of pick(allTravel)) if (t.mins > 0) { o[t.type].n++; o[t.type].mins += t.mins; }
+    return o;
+  }, [allTravel, effectiveWho]);
   const stay = useMemo(() => pick(allStay), [allStay, effectiveWho]);
 
   const years = useMemo(() => yearsOf(travel, stay), [travel, stay]);
@@ -58,6 +64,13 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
     <div className="space-y-4">
       {/* filters: traveller, year, month */}
       <PersonPicker people={people} value={effectiveWho} onChange={setWho} allowAll canAdd={false} />
+      <div className="grid grid-cols-3 gap-2">
+        {[["all", "All trips"], ["Personal", "Personal"], ["Business", "Business"]].map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setKind(k)} className={`display h-10 rounded-xl border text-sm font-bold active:scale-95 ${kind === k ? "border-sky text-sky" : "border-line text-mist"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist">Year</span>
@@ -134,6 +147,19 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
                 </tr>
               </tfoot>
             </table>
+          </Card>
+
+          {/* by trip type */}
+          <Card title="By trip type">
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              {["Personal", "Business"].map((k) => (
+                <div key={k} className="rounded-2xl border border-line p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">{k}</p>
+                  <p className="mono text-lg font-bold">{byType[k].n} trips</p>
+                  <p className="mono text-xs text-mist">{dh(byType[k].mins)}</p>
+                </div>
+              ))}
+            </div>
           </Card>
 
           {/* by mode */}

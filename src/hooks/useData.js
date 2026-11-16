@@ -3,7 +3,7 @@ import { fetchAll } from "../lib/api.js";
 import { getOutbox, subscribeOutbox } from "../lib/outbox.js";
 import { HAS_BACKEND } from "../config.js";
 import { canonicalCity, registerPlaces } from "../data/indianCities.js";
-import { minutesBetween } from "../lib/time.js";
+import { minutesBetween, todayStr } from "../lib/time.js";
 import { normPerson } from "../lib/person.js";
 
 const CACHE_KEY = "wayfarer_cache_v1";
@@ -45,6 +45,7 @@ const normTravel = (r) => {
     aDate,
     aTime,
     mins: Math.max(0, num(minutesBetween(dDate, dTime, aDate, aTime))),
+    type: r.TripType === "Business" ? "Business" : "Personal",
   };
 };
 const normStay = (r) => ({ person: normPerson(r.Person) || "Unassigned", date: normDate(r.Date), type: r.Type, city: canonicalCity(r.City) });
@@ -127,7 +128,7 @@ export function useData() {
   }, [outbox, refresh]);
 
   // server rows + not-yet-synced local rows
-  const { travel, stay } = useMemo(() => {
+  const { all: allTravel, stay } = useMemo(() => {
     const t = new Map(server.travel.map((r) => [r.id, r]));
     const s = new Map(server.stay.map((r) => [`${r.person}|${r.date}`, r]));
     for (const item of outbox) {
@@ -136,8 +137,22 @@ export function useData() {
       else if (item.kind === "stayDelete") s.delete(`${item.row.person}|${item.row.date}`);
       else if (item.kind === "stay") s.set(`${item.row.person}|${item.row.date}`, item.row);
     }
-    return { travel: [...t.values()], stay: [...s.values()] };
+    return { all: [...t.values()], stay: [...s.values()] };
   }, [server, outbox]);
+
+  // a journey departing tomorrow or later is "upcoming"; it becomes a normal journey on its date
+  const [today, setToday] = useState(todayStr);
+  useEffect(() => {
+    const tick = () => setToday((d) => (d === todayStr() ? d : todayStr()));
+    const iv = setInterval(tick, 60000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+  const travel = useMemo(() => allTravel.filter((t) => !(t.dDate > today)), [allTravel, today]);
+  const upcoming = useMemo(() => allTravel.filter((t) => t.dDate > today).sort((x, y) => (x.dDate + x.dTime).localeCompare(y.dDate + y.dTime)), [allTravel, today]);
 
   // everyone: names saved in the People tab, names on trips and stays, and names just added here
   const people = useMemo(
@@ -152,5 +167,5 @@ export function useData() {
     registerPlaces([...travel.flatMap((t) => [t.source, t.destination]), ...stay.map((s) => s.city)]);
   }, [travel, stay]);
 
-  return { travel, stay, people, loading, error, pending: outbox.length, refresh };
+  return { travel, upcoming, stay, people, loading, error, pending: outbox.length, refresh };
 }

@@ -7,12 +7,12 @@ import { MODES, PlaneIcon, SwapIcon, TrashIcon, ReturnIcon } from "./Icons.jsx";
 import { enqueue, dequeue } from "../lib/outbox.js";
 import { pushRecent } from "../lib/recent.js";
 import { addCustomPlace, canonicalCity } from "../data/indianCities.js";
-import { fmtDay, fmtDuration, minutesBetween, toDateStr, todayStr, uid } from "../lib/time.js";
+import { fmtDay, fmtDuration, minutesBetween, parseDate, toDateStr, todayStr, uid } from "../lib/time.js";
 
 const field = "h-12 w-full rounded-xl border border-line bg-night/60 px-3 text-base text-white outline-none focus:border-sky";
 const lbl = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-mist";
 
-export default function TravelForm({ trips, people, person, setPerson, onRemovePerson, notify }) {
+export default function TravelForm({ trips, upcoming = [], people, person, setPerson, onRemovePerson, notify }) {
   const [confirm, confirmUI] = useConfirm();
   const [level, setLevel] = useState(0); // 0: latest 4; 1: + this month and last month; 2: + the month before; ...
   const [mode, setMode] = useState("Train");
@@ -22,6 +22,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
   const [dTime, setDTime] = useState("");
   const [aDate, setADate] = useState(todayStr);
   const [aTime, setATime] = useState("");
+  const [type, setType] = useState("Personal");
   const [editing, setEditing] = useState(null); // a saved journey loaded into the form to be changed
   const accent = MODES[mode].color;
 
@@ -46,7 +47,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     // editing a journey that is already in the sheet: change that row, otherwise a new one
     const synced = editing && /^\d+$/.test(editing.id);
     if (editing && !synced) dequeue(editing.id); // not synced yet: drop the old queued copy
-    const row = { id, person, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins };
+    const row = { id, person, mode, source: canonicalCity(source), dDate, dTime, destination: canonicalCity(dest), aDate, aTime, mins, type };
     const cells = (extra) => ({
       ...extra,
       Person: person,
@@ -55,8 +56,9 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
       DepartDate: dDate,
       DepartTime: dTime,
       Destination: row.destination,
-          ArrivalDate: aDate,
-          ArrivalTime: aTime,
+      ArrivalDate: aDate,
+      ArrivalTime: aTime,
+      TripType: type,
     });
     if (synced) {
       row.id = editing.id;
@@ -82,6 +84,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     setEditing(null);
     // back to a blank form for the next entry
     setMode("Train");
+    setType("Personal");
     setSource("");
     setDest("");
     setDDate(todayStr());
@@ -96,6 +99,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     setEditing(t);
     setPerson(t.person);
     setMode(t.mode);
+    setType(t.type || "Personal");
     setSource(t.source);
     setDest(t.destination);
     setDDate(t.dDate);
@@ -108,6 +112,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
   const cancelEdit = () => {
     setEditing(null);
     setMode("Train");
+    setType("Personal");
     setSource("");
     setDest("");
     setDDate(todayStr());
@@ -125,6 +130,7 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
     notify("Trip removed");
   };
 
+  const upcomingMine = upcoming.filter((t) => t.person === person);
   const SHOWN = 4;
   const all = trips.filter((t) => t.person === person).sort((x, y) => (y.dDate + y.dTime).localeCompare(x.dDate + x.dTime));
   const monthStart = (n) => {
@@ -139,6 +145,33 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
   let nextLevel = null; // the next level that actually reveals more journeys
   for (let k = level + 1; k <= 120 && nextLevel === null; k++) if (visibleAt(k).length > recent.length) nextLevel = k;
   const extra = nextLevel === null ? 0 : visibleAt(nextLevel).length - recent.length;
+
+  const card = (t, soon) => {
+    const m = MODES[t.mode] || MODES.Flight;
+    const days = soon ? Math.round((parseDate(t.dDate) - parseDate(todayStr())) / 86400000) : 0;
+    return (
+      <li key={t.id} className="flex items-center gap-3 rounded-2xl border border-line bg-deck p-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${m.color}22`, color: m.color }}>
+          <m.Icon width={22} height={22} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-medium">
+            {t.source} <span className="text-mist">to</span> {t.destination}
+          </p>
+          <p className="mono text-xs text-mist">
+            {fmtDay(t.dDate)} · {fmtDuration(t.mins)} · <span className={t.type === "Business" ? "text-sky" : ""}>{t.type || "Personal"}</span>
+            {soon && ` · ${days === 1 ? "tomorrow" : `in ${days} days`}`}
+          </p>
+        </div>
+        <button onClick={() => edit(t)} aria-label="Edit journey" className="p-2 text-mist active:text-sky">
+          <ReturnIcon width={20} height={20} />
+        </button>
+        <button onClick={() => remove(t)} aria-label="Delete" className="p-2 text-mist active:text-rose-400">
+          <TrashIcon width={20} height={20} />
+        </button>
+      </li>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -177,6 +210,21 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
               </button>
             );
           })}
+        </div>
+
+        {/* trip type */}
+        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+          {["Personal", "Business"].map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setType(k)}
+              className="display h-11 rounded-xl border text-sm font-bold transition active:scale-95"
+              style={{ borderColor: type === k ? accent : "var(--color-line)", background: type === k ? `${accent}22` : "transparent", color: type === k ? accent : "var(--color-mist)" }}
+            >
+              {k}
+            </button>
+          ))}
         </div>
 
         {/* route */}
@@ -223,34 +271,18 @@ export default function TravelForm({ trips, people, person, setPerson, onRemoveP
         </div>
       </form>
 
+      {upcomingMine.length > 0 && (
+        <section>
+          <h2 className="display mb-2 px-1 text-sm font-bold uppercase tracking-widest text-mist">Upcoming journeys</h2>
+          <ul className="space-y-2">{upcomingMine.map((t) => card(t, true))}</ul>
+        </section>
+      )}
+
       {recent.length > 0 && (
         <section>
           <h2 className="display mb-2 px-1 text-sm font-bold uppercase tracking-widest text-mist">Recent journeys</h2>
           <ul className="space-y-2">
-            {recent.map((t) => {
-              const m = MODES[t.mode] || MODES.Flight;
-              return (
-                <li key={t.id} className="flex items-center gap-3 rounded-2xl border border-line bg-deck p-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${m.color}22`, color: m.color }}>
-                    <m.Icon width={22} height={22} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-medium">
-                      {t.source} <span className="text-mist">to</span> {t.destination}
-                    </p>
-                    <p className="mono text-xs text-mist">
-                      {fmtDay(t.dDate)} · {fmtDuration(t.mins)}
-                    </p>
-                  </div>
-                  <button onClick={() => edit(t)} aria-label="Edit journey" className="p-2 text-mist active:text-sky">
-                    <ReturnIcon width={20} height={20} />
-                  </button>
-                  <button onClick={() => remove(t)} aria-label="Delete" className="p-2 text-mist active:text-rose-400">
-                    <TrashIcon width={20} height={20} />
-                  </button>
-                </li>
-              );
-            })}
+            {recent.map((t) => card(t))}
           </ul>
           {(nextLevel !== null || level > 0) && (
             <div className="mt-3 flex gap-3">

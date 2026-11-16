@@ -61,3 +61,9 @@ Open the Pages URL in Chrome (Android) or Safari (iOS) > **Add to Home Screen**.
 | Stay | Person, Date, Type (`Home` / `Outside`), City |
 
 All times are treated as one timezone (IST). Duration is not stored: the app works it out as arrival minus departure.
+
+## Trip type and upcoming journeys
+
+- The Travel tab has a `TripType` column (`Business` or `Personal`; blank counts as Personal). Re-deploy the script as a new version and run `setup()` to add it.
+- A journey whose departure date is tomorrow or later is shown under **Upcoming journeys** and is left out of Insights. On its departure date it becomes a normal recent journey automatically (nothing is stored for this).
+- A `People` tab holds every traveller name so all devices see the same list.

@@ -14,7 +14,7 @@
  */
 
 var SCHEMA = {
-  Travel: ['Id', 'Person', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime'],
+  Travel: ['Id', 'Person', 'Mode', 'Source', 'DepartDate', 'DepartTime', 'Destination', 'ArrivalDate', 'ArrivalTime', 'TripType'], // TripType: Business or Personal (blank = Personal)
   Stay: ['Person', 'Date', 'Type', 'City'],
   People: ['Name'] // every traveller, so a new name shows on all devices before its first entry
 };
@@ -25,7 +25,7 @@ var TEXT_COLS = {
   People: []
 };
 var TIME_COLS = ['DepartTime', 'ArrivalTime'];
-var CACHE_KEY = 'all_v4';
+var CACHE_KEY = 'all_v5';
 
 function setup() {
   // also puts the existing rows in date order

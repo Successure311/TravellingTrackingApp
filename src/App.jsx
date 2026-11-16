@@ -24,7 +24,7 @@ export default function App() {
   });
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
-  const { travel, stay, people: syncedPeople, loading, error, pending, refresh } = useData();
+  const { travel, upcoming, stay, people: syncedPeople, loading, error, pending, refresh } = useData();
   const [localPeople, setLocalPeople] = useState(getLocalPeople);
   // An old one-time reset hid every sheet name on a device; show them all again, once.
   const [hidden, setHidden] = useState(() => {
@@ -115,7 +115,7 @@ export default function App() {
       {error && <p className="mx-4 mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
 
       <main className="px-4 pt-5">
-        {tab === "travel" && <TravelForm trips={travel} people={people} person={activePerson} setPerson={choosePerson} onRemovePerson={removePerson} notify={notify} />}
+        {tab === "travel" && <TravelForm trips={travel} upcoming={upcoming} people={people} person={activePerson} setPerson={choosePerson} onRemovePerson={removePerson} notify={notify} />}
         {tab === "stay" && <StayForm stays={stay} people={people} person={activePerson} setPerson={choosePerson} onRemovePerson={removePerson} notify={notify} />}
         {tab === "insights" && <Insights travel={travel} stay={stay} people={people} person={activePerson} loading={loading} />}
       </main>
