@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import PersonPicker, { Avatar } from "./PersonPicker.jsx";
 import { MODES } from "./Icons.jsx";
-import { summarize, yearsOf } from "../lib/summary.js";
+import { stayType, summarize, yearsOf } from "../lib/summary.js";
 import { fmtDuration, MONTHS, splitDuration } from "../lib/time.js";
 
 const TH = "py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-mist first:pl-0 first:text-left pl-3";
@@ -36,7 +36,11 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
     for (const t of pick(allTravel)) if (t.mins > 0) { o[t.type].n++; o[t.type].mins += t.mins; }
     return o;
   }, [allTravel, effectiveWho]);
-  const stay = useMemo(() => pick(allStay), [allStay, effectiveWho]);
+  const stay = useMemo(
+    () => pick(allStay).filter((x) => kind === "all" || stayType(allTravel, x) === kind),
+    [allStay, allTravel, effectiveWho, kind]
+  );
+  const personTravel = useMemo(() => pick(allTravel), [allTravel, effectiveWho]);
 
   const years = useMemo(() => yearsOf(travel, stay), [travel, stay]);
   const [year, setYear] = useState(null);
@@ -45,8 +49,18 @@ export default function Insights({ travel: allTravel, stay: allStay, people, per
   const activeYear = year === "all" || years.includes(year) ? year : years[0] ?? thisYear;
 
   const activeMonth = activeYear === "all" ? "all" : month;
-  const s = useMemo(() => summarize({ travel, stay, year: activeYear, month: activeMonth }), [travel, stay, activeYear, activeMonth]);
-  const everyone = useMemo(() => summarize({ travel: allTravel, stay: allStay, year: activeYear, month: activeMonth }), [allTravel, allStay, activeYear, activeMonth]);
+  const s = useMemo(() => summarize({ travel, stay, year: activeYear, month: activeMonth, allTravel: personTravel }), [travel, stay, personTravel, activeYear, activeMonth]);
+  const everyone = useMemo(
+    () =>
+      summarize({
+        travel: allTravel.filter((t) => kind === "all" || t.type === kind),
+        stay: allStay.filter((x) => kind === "all" || stayType(allTravel, x) === kind),
+        allTravel,
+        year: activeYear,
+        month: activeMonth,
+      }),
+    [allTravel, allStay, kind, activeYear, activeMonth]
+  );
 
   if (loading) {
     return (

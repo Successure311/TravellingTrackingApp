@@ -56,11 +56,22 @@ export function stayMinutes(travel, stay) {
     .filter((x) => x.mins > 0);
 }
 
+// A stay has no type of its own: it takes the type of the journey that brought the person there
+// (their latest arrival on or before that day). Stays before any journey count as Personal.
+export function stayType(allTravel, s) {
+  let best = null;
+  for (const t of allTravel) {
+    if (t.person !== s.person || !t.aDate || t.aDate > s.date) continue;
+    if (!best || (t.aDate + t.aTime) > (best.aDate + best.aTime)) best = t;
+  }
+  return best ? best.type : "Personal";
+}
+
 // Everything the Insights tables need for one year (or "all"). A logged stay counts as 1 day.
-export function summarize({ travel, stay, year, month = "all" }) {
+export function summarize({ travel, stay, year, month = "all", allTravel = travel }) {
   const byDay = year !== "all" && month !== "all";
   const inScope = (d) => (year === "all" || yearOf(d) === year) && (!byDay || monthOf(d) === month);
-  const stayList = stayMinutes(travel, stay).filter((x) => inScope(x.date));
+  const stayList = stayMinutes(allTravel, stay).filter((x) => inScope(x.date));
   const trips = travel.filter((t) => inScope(t.dDate) && t.mins > 0);
   const stays = stay.filter((s) => inScope(s.date));
 
